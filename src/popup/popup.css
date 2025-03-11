@@ -1,7 +1,35 @@
 body {
     font-family: Arial, sans-serif;
-    min-width: 600px;
-    max-width: 700px;
-    background-color: #1e1e1e;
+    width: 850px;
+    height: 750px;
+    overflow: hidden;
+    background-image: url("/assets/12.png");
+    background-repeat: no-repeat;
+    background-size: cover;
     color: #fff;
 }
+
+.container {
+    margin-top: 170px;
+    padding-left: 35px;
+}
+
+.home-btn {
+    padding: 15px;
+    font-size: 30px;
+    background-color: #6F84B3;
+    color: white;
+    border: none;
+    margin-bottom: 15px;
+    border-radius: 15px;
+    font-weight: bold;
+    width: 300px;
+}
+
+.btn-container {
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+    padding: 0;
+}
+

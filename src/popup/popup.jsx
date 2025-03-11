@@ -64,19 +64,18 @@ const Popup = () => {
   }
 
   return (
-    <div style={{ padding: "20px", width: "300px", textAlign: "center" }}>
+    <div className="container">
       {view === "home" ? (
         <>
-          <h1>Firefox Recap</h1>
-          <p>Select a time period to see your browsing summary:</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <button style={{ padding: "10px", fontSize: "16px" }} onClick={() => setView("day")}>
+          <h1 style={{fontSize: "80px",  padding: "0", margin: "0"}}>Firefox Recap</h1>
+          <div className="btn-container">
+            <button className="home-btn" onClick={() => setView("day")}>
               Day
             </button>
-            <button style={{ padding: "10px", fontSize: "16px" }} onClick={() => setView("week")}>
+            <button className="home-btn" onClick={() => setView("week")}>
               Week
             </button>
-            <button style={{ padding: "10px", fontSize: "16px" }} onClick={() => setView("month")}>
+            <button className="home-btn" onClick={() => setView("month")}>
               Month
             </button>
           </div>

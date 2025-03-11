@@ -14,6 +14,13 @@ body {
     padding-left: 35px;
 }
 
+.chart-container {
+    width: 100%;       /* Full width of its parent */
+    height: 300px;     /* Increased height */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
 .home-btn {
     padding: 15px;
     font-size: 30px;

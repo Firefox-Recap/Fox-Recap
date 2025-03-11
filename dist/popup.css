@@ -1,6 +1,5 @@
 body {
     font-family: Arial, sans-serif;
-
     width: 850px;
     height: 750px;
     overflow: hidden;
@@ -13,6 +12,13 @@ body {
 .container {
     margin-top: 170px;
     padding-left: 35px;
+}
+
+.chart-container {
+    width: 100%;       /* Full width of its parent */
+    height: 300px;     /* Increased height */
+    padding: 20px;
+    box-sizing: border-box;
 }
 
 .home-btn {

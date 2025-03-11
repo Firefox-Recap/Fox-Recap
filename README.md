@@ -38,6 +38,8 @@ npm install
 
 ### Running the Extension Locally
 ```sh
+npm run build
+
 # Open Firefox and navigate to:
 about:debugging#/runtime/this-firefox
 
@@ -45,7 +47,7 @@ about:debugging#/runtime/this-firefox
 Load Temporary Add-on
 
 # Select the file:
-manifest.json from the project directory
+dist/manifest.json from the project directory
 ```
 ---
 

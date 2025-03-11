@@ -16,7 +16,7 @@ body {
 
 .chart-container {
     width: 100%;       /* Full width of its parent */
-    height: 300px;     /* Increased height */
+    height: 200px;     /* Increased height */
     padding: 20px;
     box-sizing: border-box;
 }

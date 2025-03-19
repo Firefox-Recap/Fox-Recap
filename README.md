@@ -1,31 +1,65 @@
-# Histofy 📊
-A Firefox browser extension that provides structured and categorized browsing history reports using a topic classifier and a frequency algorithm (frequency + recency). Get productivity insights right from your browser!
+# Firefox Recap 📊  
+
+**Firefox Recap** is a powerful browser extension designed to help users analyze and understand their browsing habits. It categorizes your browsing history using **AI-powered topic classification** and a **frequency + recency algorithm**, providing **insightful reports** on how you spend time online.  
+
+🔹 **Automatic Categorization** – Your browsing history is structured into meaningful categories.  
+🔹 **Productivity Insights** – Identify where your time goes and optimize your workflow.  
+🔹 **Privacy-First Design** – All data is processed locally, ensuring full control over your history.  
+
+Gain valuable insights into your browsing patterns **directly from your browser**!  
 
 ---
 
 ## 🚀 Features
-- Categorized browsing history reports
-- Frequency and recency-based analysis
-- User-friendly and privacy-focused
+### 🔍 **Smart Browsing History Reports**  
+Automatically categorize your browsing history into meaningful topics using an AI-powered classifier.  
+
+### 📊 **Frequency & Recency Analysis**  
+Gain insights into your most visited websites based on **how often** and **how recently** you've accessed them.  
+
+### 🔒 **Privacy-Focused & Secure**  
+All data is processed **locally on your device**, ensuring complete privacy and control over your browsing history.  
+
+### 🎛 **User-Friendly Dashboard**  
+A clean and intuitive interface makes it easy to view, filter, and analyze your browsing trends.  
+
+### ⚡ **Optimized for Productivity**  
+Identify distractions, track work-related sites, and optimize your online habits for better focus and efficiency.  
 
 ---
 
 ## 💻 Tech Stack
-- **Frontend:** Vanilla JavaScript, HTML, CSS (Firefox Extension)
-- **NLP Models:** Transformers.js for topic classification
-- **CI/CD:** GitHub Actions for linting, testing, and building
+### 🌐 **Frontend**  
+- **React.js** – Modern UI framework for the extension popup  
+- **Tailwind CSS** – Styling for a clean, responsive design  
+- **HTML, CSS, JavaScript** – Core extension structure  
+
+### 🧠 **AI & NLP**  
+- **Transformers.js** – Topic classification using zero-shot learning  
+- **ONNX Runtime** – Optimized model execution for local inference  
+
+### 🛠 **Backend & Storage**  
+- **IndexedDB** – Local storage for browsing history data  
+- **SQLite (via sql.js)** – Structured data persistence  
+
+### 🔄 **CI/CD & Deployment**  
+- **GitHub Actions** – Automated linting, testing, and building  
+- **Webpack** – Optimized bundling for Firefox extension packaging  
 
 ---
 
 ## 🛠 Getting Started
-
-### Prerequisites
-- Node.js (v18.x recommended)
-- npm (v8.x recommended)
+### 🚀 Prerequisites  
+Ensure you have the following installed before proceeding:  
+- **Node.js** (v18.x recommended)  
+- **npm** (v8.x recommended)  
+- **Firefox Browser** (Latest stable version)  
 
 ---
 
-### Installation
+### 📥 Installation  
+Clone the repository and install dependencies:  
+
 ```sh
 # Clone the repository
 git clone https://github.com/Firefox-Recap/Histofy.git
@@ -35,19 +69,43 @@ cd Histofy
 
 # Install dependencies
 npm install
-
-### Running the Extension Locally
-```sh
-# Open Firefox and navigate to:
-about:debugging#/runtime/this-firefox
-
-# Click on:
-Load Temporary Add-on
-
-# Select the file:
-manifest.json from the project directory
 ```
+
 ---
+
+### 🔧 Running the Extension Locally  
+To test the extension in **Firefox Developer Mode**, follow these steps:  
+
+1️⃣ Open **Firefox** and navigate to:  
+   ```
+   about:debugging#/runtime/this-firefox
+   ```  
+2️⃣ Click **"Load Temporary Add-on"**  
+3️⃣ Select **`manifest.json`** from the project directory  
+
+Your extension should now be active in Firefox! 🚀  
+
+---
+
+### 🏗 Development Mode (Auto Rebuild)  
+For live development with **automatic rebuilding**:  
+
+```sh
+# Start the local development server
+npm run dev
+```
+This will watch for changes and automatically rebuild the extension.  
+
+---
+
+### 🔥 Building for Production  
+When you're ready to package the extension for deployment:  
+
+```sh
+npm run build
+```
+
+This will generate an optimized **ZIP package** inside the `dist/` folder, ready for publishing.  
 
 ## 🔒 Branch Rules & Contribution Guidelines
 
@@ -102,7 +160,7 @@ We follow a **Git Flow** strategy to maintain code quality and streamline the de
     ```
 
 4. **Open a Pull Request:**
-    - Go to the [repository on GitHub](https://github.com/Firefox-Recap/Histofy).
+    - Go to the [repository on GitHub](https://github.com/Firefox-Recap/FireFox-Recap).
     - Open a Pull Request from your feature branch to `develop`.
     - Ensure all checks pass and at least one reviewer approves before merging.
 

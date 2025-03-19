@@ -13,10 +13,12 @@ export default {
   devtool: false, // ✅ Disable source maps to prevent invalid URL errors
   entry: {
     background: './src/background/background.js',
+    batchClassification: './src/background/batchClassification.js', // ✅ ADD THIS
     popup: './src/popup/popup.js',
     options: './src/options/options.js',
     content: './src/content/content.js'
   },
+
   output: {
     path: path.resolve(__dirname, 'dist'),
     filename: '[name].bundle.js'

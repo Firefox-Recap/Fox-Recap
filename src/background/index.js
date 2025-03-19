@@ -8,10 +8,7 @@
 import './background.js';
 import { collectHistory } from './historyCollector.js';
 
-// Initial History Collection on Extension Startup
-collectHistory().then(historyData => {
-  console.log('Initial History Data:', historyData);
-
-  // Store history data locally
-  browser.storage.local.set({ historyData });
+// Kick off initial history collection
+collectHistory().then(() => {
+  console.log('Initial History Collection started.');
 });

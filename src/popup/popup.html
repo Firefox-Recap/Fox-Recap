@@ -10,40 +10,24 @@
   <div class="popup-container">
     <h2>Histofy - Browsing History</h2>
 
-    <!-- Show this while loading -->
     <p id="loading-message" style="display: none;">⏳ Loading history...</p>
 
-    <!-- Nav for filtering history -->
-    <br>
-    
     <div class="dwm-nav">
       <button class="dwm-nav-item active" onclick="selectTab(this)">Day</button>
       <button class="dwm-nav-item" onclick="selectTab(this)">Week</button>
       <button class="dwm-nav-item" onclick="selectTab(this)">Month</button>
+      <button id="download-csv-btn">Download CSV</button>
+
     </div>
 
-    <br>
-
-    <!-- changes based on day/month/week selected -->
     <h2 id="selected-view">Day</h2>
+    <div id="graph"></div>
+    <div id="summary">Summary:</div>
 
-    <!-- Graph section -->
-    <div id="graph">
-      <!-- GRAPH HERE CHANGES BASED ON USER SETTINGS -->
-    </div>
-
-    <!-- Summary section -->
-    <div id="summary">
-      Summary:
-    </div>
-
-    <!-- History results -->
-    <ul id="history-list">
-      <!-- Categorized history will be injected here -->
-    </ul>
+    <ul id="history-list"></ul>
   </div>
 
-  <!-- Ensure popup.js loads AFTER the DOM is ready -->
+  <!-- Ensure popup.js is loaded after the DOM -->
   <script src="popup.bundle.js"></script>
 </body>
 </html>

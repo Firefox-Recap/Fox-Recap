@@ -1,0 +1,209 @@
+{
+    "prompts": {
+      "genericCategorical": [
+        {
+          "id": "genCat1",
+          "text": "You have browsed these websites the most during the evening. (Top 5 websites)"
+        },
+        {
+          "id": "genCat2",
+          "text": "You had a type this year – Your top web obsessions? [Category 1], [Category 2], and [Category 3]—because balance is overrated."
+        },
+        {
+          "id": "genCat3",
+          "text": "This has been your favorite kind of exploring 🔍… (Category most visited)"
+        },
+        {
+          "id": "genCat4",
+          "text": "While it’s not a competition…There is a leaderboard. (Top most visited category)"
+        },
+        {
+          "id": "genCat5",
+          "text": "When the sun goes down, [Category] takes over. Here are the top 5 websites you can’t stop visiting at night. 🌚🌟"
+        },
+        {
+          "id": "genCat6",
+          "text": "Your browsing habits are uniquely you. This [day/week/month], you’ve been all about [Category]."
+        },
+        {
+          "id": "genCat7",
+          "text": "These sites are your personal favorites. Discover why [Category] keeps you coming back for more."
+        },
+        {
+          "id": "genCat8",
+          "text": "Today, you spent [X] hours online. Was it a virtual journey or a digital daydream? Either way, you traveled far! 🌍✨"
+        }
+      ],
+      "monthPrompts": [
+        {
+          "id": "month1",
+          "text": "Your biggest day was [date] with [amount of minutes]. Where do you find the time?"
+        },
+        {
+          "id": "month2",
+          "text": "You spent [minutes] this month on Firefox! That puts you in the top 1% of active users."
+        }
+      ],
+      "metric": [
+        {
+          "id": "met1",
+          "text": "You clicked [X] URLs this [d,w,m]—curious, unstoppable, and maybe just a little too online. 🌐👀"
+        },
+        {
+          "id": "met2",
+          "text": "This week, you've spent [X] hours online, exploring and discovering. Ready for a digital detox, or are you just warming up? 🥵🔄"
+        },
+        {
+          "id": "met3",
+          "text": "You spent [X] hours online - streaming, scrolling, and surfing like it’s your full-time job. 🖥️"
+        },
+        {
+          "id": "met4",
+          "text": "You've visited [X] unique websites today—explorer of the digital universe! 🌌🚀"
+        },
+        {
+          "id": "met5",
+          "text": "Achievement unlocked: Digital Marathoner for browsing over [X] hours in one day! 🏅👟"
+        },
+        {
+          "id": "met6",
+          "text": "With [X] URL visits this [day/week/month], you’re rewriting the playbook on digital engagement."
+        },
+        {
+          "id": "met7",
+          "text": "Today's top sites were [Website 1], [Website 2], [Website 3]. What were you searching for? 🏆💻"
+        }
+      ],
+      "combinationHybrid": [
+        {
+          "id": "comb1",
+          "text": "This week, you logged [X] hours online across these categories: [Category 1], [Category 2], [Category 3]. Balanced or obsessed? ⏳📊"
+        },
+        {
+          "id": "comb2",
+          "text": "You logged [X] URL clicks this [d/w/m] and your top category, [Category], ruled your online journey. 🚀💻 Your digital mastery is off the charts!"
+        },
+        {
+          "id": "comb3",
+          "text": "Your stats speak volumes: [X] URL clicks paired with a passion for [Category] shows your vibrant digital spirit. 🎯🚀"
+        }
+      ],
+      "topCategories": {
+        "Uncategorized": [
+          {
+            "id": "uncat1",
+            "text": "Your digital journey defies labels! With 'Uncategorized' topping your charts, you're the ultimate explorer—ready for anything. 🌍✨"
+          },
+          {
+            "id": "uncat2",
+            "text": "Uncategorized might be a mystery, but it’s your unique digital fingerprint!"
+          }
+        ],
+        "Education": [
+          {
+            "id": "edu1",
+            "text": "Knowledge is your superpower! With Education as your top category, every click is a step toward new discoveries. 📚💡"
+          },
+          {
+            "id": "edu2",
+            "text": "A beacon of knowledge, you've dedicated the most time to Education, expanding your horizons and expertise. 🎓📚"
+          }
+        ],
+        "Shop": [
+          {
+            "id": "shop1",
+            "text": "Retail therapy at its best! Shop leads your browsing, proving you’re always on the hunt for the latest deals and trends. 🛍️💸"
+          },
+          {
+            "id": "shop2",
+            "text": "Retail therapy much? Your most visited category is Shop. Which haul was your favorite this year? 🛍️💳"
+          }
+        ],
+        "Entertainment": [
+          {
+            "id": "ent1",
+            "text": "Fun is your go-to escape! With Entertainment in the lead, your digital realm is all about immersive experiences and pure enjoyment. 🎬🍿"
+          },
+          {
+            "id": "ent2",
+            "text": "A lover of all things fun, your top visits have been to Entertainment, making every moment a showstopper. 🎬🎤"
+          }
+        ],
+        "Technology": [
+          {
+            "id": "tech1",
+            "text": "Always ahead, Technology is where you shine, discovering the latest and greatest in gadgets and apps. 📱💻"
+          },
+          {
+            "id": "tech2",
+            "text": "Tech-savvy and innovative, your clicks prove that Technology is the future you’re embracing. 🤖💻"
+          }
+        ],
+        "News": [
+          {
+            "id": "news1",
+            "text": "You're always in the know, with News as your top category. Which story had the biggest impact on you this year? 📰🌎"
+          },
+          {
+            "id": "news2",
+            "text": "Keenly following global events, News is your most frequented category, keeping you informed and alert. 📰🌎"
+          }
+        ],
+        "Government": [
+          {
+            "id": "gov1",
+            "text": "Engaged and informed, Government is your most browsed category. What policy or discussion caught your attention the most? 🏛️🗳️"
+          },
+          {
+            "id": "gov2",
+            "text": "Your clicks on government sites show you’re all about staying informed on public matters. 🇺🇸🗳️"
+          }
+        ],
+        "Health": [
+          {
+            "id": "health1",
+            "text": "With Health as your top category, you’re staying informed about wellness. What’s the best health tip you've learned? 🍏🏋️‍♂️"
+          },
+          {
+            "id": "health2",
+            "text": "Health is your top category, a testament to your commitment to wellness and living a better, informed lifestyle. 🍏🏋️‍♂️"
+          },
+          {
+            "id": "health3",
+            "text": "Wellness on your radar! With Health as your top category, you're dedicated to nurturing both body and mind. 🍏💪"
+          }
+        ],
+        "Travel": [
+          {
+            "id": "travel1",
+            "text": "Adventure awaits! With Travel in the spotlight, your clicks are mapping out a world of exploration and new horizons. ✈️🌍"
+          },
+          {
+            "id": "travel2",
+            "text": "With Travel as your favorite category, you’re constantly scouting for your next great adventure across the globe. ✈️🌍"
+          }
+        ],
+        "Work": [
+          {
+            "id": "work1",
+            "text": "Productivity mode: activated! With Work topping your list, every click is a step toward success and efficiency. 💼📈"
+          },
+          {
+            "id": "work2",
+            "text": "Work is where you thrive, often engaging in content that enhances your professional life and career. 💼🏆"
+          }
+        ],
+        "Chat": [
+          {
+            "id": "chat1",
+            "text": "Connection is key! With Chat as your top category, you're all about sparking conversations and building communities. 💬🤝"
+          },
+          {
+            "id": "chat2",
+            "text": "Master of conversation, you engage most in Chat, connecting with people and exchanging fascinating ideas. 🗨️👥"
+          }
+        ]
+      }
+    }
+  }
+  

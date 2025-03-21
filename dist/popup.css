@@ -3,7 +3,7 @@ body {
     width: 850px;
     height: 750px;
     overflow: hidden;
-    background-image: url("/assets/12.png");
+    background-image: url("/assets/images/12.png");
     background-repeat: no-repeat;
     background-size: cover;
     color: #fff;
@@ -16,7 +16,7 @@ body {
 
 .chart-container {
     width: 100%;       /* Full width of its parent */
-    height: 200px;     /* Increased height */
+    height: 300px;     /* Increased height */
     padding: 20px;
     box-sizing: border-box;
 }

@@ -1,65 +1,62 @@
 import React from 'react';
-import { Doughnut } from 'react-chartjs-2';
+import Chart from 'react-apexcharts';
 
 const ChartView = ({ historyData, setView }) => {
-  console.log("Chart data:", historyData);
-  // const topTen = historyData.slice(0, 10);
-  // const doughnutData = {
-  //   labels: topTen.map((item) => item.domain),
-  //   datasets: [
-  //     {
-  //       label: "Visit Count",
-  //       data: topTen.map((item) => item.visitCount),
-  //       backgroundColor: [
-  //         "#FF6384",
-  //         "#36A2EB",
-  //         "#FFCE56",
-  //         "#4BC0C0",
-  //         "#9966FF",
-  //         "#FF9F40",
-  //         "#FFCD56",
-  //         "#4BC0C0",
-  //         "#36A2EB",
-  //         "#FF6384",
-  //       ],
-  //       hoverBackgroundColor: [
-  //         "#FF6384",
-  //         "#36A2EB",
-  //         "#FFCE56",
-  //         "#4BC0C0",
-  //         "#9966FF",
-  //         "#FF9F40",
-  //         "#FFCD56",
-  //         "#4BC0C0",
-  //         "#36A2EB",
-  //         "#FF6384",
-  //       ],
-  //     },
-  //   ],
-  // };
 
-  // const options = {
-  //   plugins: {
-  //     legend: {
-  //       position: "top",
-  //       labels: {
-  //         color: "white",
-  //         font: {
-  //           size: 14,
-  //         },
-  //       },
-  //     },
-  //   },
-  //   responsive: true,
-  //   maintainAspectRatio: false,
-  // };
+  const topTen = historyData.slice(0, 10);
 
+  if (!historyData || historyData.length === 0) {
+    return <p>No data available.</p>; 
+  }
+
+  // Series data for the chart (visit counts)
+  const series = topTen.map(item => item.visitCount);
+
+  // Labels for the chart (domains)
+  const labels = topTen.map(item => item.domain);
+
+  // Chart options
+  var options = {
+    series: [44, 55, 41, 17, 15],
+    chart: {
+    type: 'donut',
+  },
+  labels: labels,
+  stroke: {
+    width: 0
+  },
+  legend: {
+    position: 'right', 
+    horizontalAlign: 'right', 
+    offsetY: 0,
+    height: 230,
+    labels: {
+      colors: 'rgb(255, 255, 255)', 
+      useSeriesColors: false
+    },
+    markers: {
+      width: 12,
+      height: 12
+    }
+  },
+  responsive: [{
+    breakpoint: 480,
+    options: {
+      chart: {
+        width: 200
+      },
+      legend: {
+        position: 'bottom'
+      }
+    }
+  }]
+  };
+  
   return (
     <div className="chart-container">
-      {/* <h2>Top 10 Websites Chart</h2>
-      <Doughnut data={doughnutData} options={options} />
-      <button onClick={() => setView("home")}>Back to Home</button> */}
-      <h1>CHART VIEW</h1>
+      <h1>Top 10 Websites</h1>
+      <Chart options={options} series={series} type="donut" width="380" />
+      <button onClick={() => setView("home")}>Back to Home</button>
     </div>
   );
 };

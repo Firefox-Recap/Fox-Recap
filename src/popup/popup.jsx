@@ -86,6 +86,7 @@ const Popup = () => {
     <div className="container" style={{ position: "relative", height: "100vh" }}>
       {view === "home" && <HomeView setView={setView} handleTimePeriodClick={handleTimePeriodClick} />}
       {view === "topFive" && <TopFiveSummary historyData={historyData} setView={setView} />}
+      {view === "chart" && <ChartView historyData={historyData} setView={setView} />}
       {loading && <p>Loading...</p>}
     </div>
   );  

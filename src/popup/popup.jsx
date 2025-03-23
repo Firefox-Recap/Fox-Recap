@@ -2,12 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createRoot } from "react-dom/client";
 //import Slides from "./BackgroundSlider";
 import HomeView from './HomeView';
+import IntroToRecap from './IntroToRecap';
 import TopFiveSummary from './TopFiveSummary';
 import ChartView from './ChartView';
 //import promptsData from "./prompts.json";
 
 const Popup = () => {
   const [view, setView] = useState("home");
+  const [period, setPeriod] = useState("day"); 
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -59,7 +61,6 @@ const Popup = () => {
         );
 
         setHistoryData(sortedHistory);
-        console.log("Sorted history data:", sortedHistory);
 
       }
     } catch (err) {
@@ -75,16 +76,20 @@ const Popup = () => {
     }
   }, [view, fetchHistory]);
 
-  const handleTimePeriodClick = async (period) => {
+  
+
+  const handleTimePeriodClick = async (selectedPeriod) => {
     setLoading(true);
-    setView("topFive"); 
-    await fetchHistory(period);
+    setPeriod(selectedPeriod);
+    setView("introRecap");
+    await fetchHistory(selectedPeriod);
     setLoading(false);
   };
 
   return (
     <div className="container" style={{ position: "relative", height: "100vh" }}>
       {view === "home" && <HomeView setView={setView} handleTimePeriodClick={handleTimePeriodClick} />}
+      {view === "introRecap" && <IntroToRecap setView={setView} period={period} />}
       {view === "topFive" && <TopFiveSummary historyData={historyData} setView={setView} />}
       {view === "chart" && <ChartView historyData={historyData} setView={setView} />}
       {loading && <p>Loading...</p>}

@@ -4,7 +4,7 @@ const TopFiveSummary = ({ historyData, setView }) => {
   if (!historyData || historyData.length === 0) {
     return <div>No data available </div>;
   }
-  
+
   const topFive = historyData.slice(0, 5);
   return (
     <div>

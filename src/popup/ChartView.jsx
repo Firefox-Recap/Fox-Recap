@@ -3,7 +3,7 @@ import Chart from 'react-apexcharts';
 
 const ChartView = ({ historyData, setView }) => {
 
-  const topTen = historyData.slice(0, 10);
+  const topTen = historyData.slice(0, 5);
 
   if (!historyData || historyData.length === 0) {
     return <p>No data available.</p>; 
@@ -54,7 +54,7 @@ const ChartView = ({ historyData, setView }) => {
   
   return (
     <div className="chart-container">
-      <h1>Top 10 Websites</h1>
+      <h1>Top 5 Websites</h1>
       <Chart options={options} series={series} type="donut" width="380" />
       <button onClick={() => setView("home")}>Back to Home</button>
     </div>

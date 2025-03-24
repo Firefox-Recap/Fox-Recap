@@ -9,11 +9,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default {
-  mode: 'production', // ✅ Set to production for optimized build
-  devtool: false, // ✅ Disable source maps to prevent invalid URL errors
+  mode: 'production', // Optimized production build
+  devtool: false, // Disable source maps to avoid invalid URL errors
   entry: {
     background: './src/background/background.js',
-    popup: './src/popup/popup.jsx',
+    popup: './src/popup/popup.jsx', // Using popup.jsx as our main popup entry
     options: './src/options/options.js',
     content: './src/content/content.js'
   },
@@ -29,9 +29,14 @@ export default {
         use: {
           loader: 'babel-loader',
           options: {
-            presets: ['@babel/preset-env','@babel/preset-react']
+            presets: ['@babel/preset-env', '@babel/preset-react']
           }
         }
+      },
+      // Optional: if you decide to bundle CSS instead of copying it
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader']
       }
     ]
   },
@@ -49,14 +54,11 @@ export default {
     })
   ],
   resolve: {
-    extensions: ['.js','.jsx'],
+    extensions: ['.js', '.jsx'],
     fallback: {
-      "crypto": false,
-      "path": false,
-      "fs": false
+      crypto: false,
+      path: false,
+      fs: false
     }
   }
 };
-
-
-

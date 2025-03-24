@@ -1,5 +1,31 @@
 {
     "prompts": {
+      "introRecap": [
+      {
+        "id": "introRecap1",
+        "text": "Here’s a recap of your browser activity this [x]."
+      },
+      {
+        "id": "introRecap2",
+        "text": "Let's check out what was browsed this [x]."
+      },
+      {
+        "id": "introRecap3",
+        "text": "Here’s what your browsing looked like this [x]."
+      },
+      {
+        "id": "introRecap4",
+        "text": "Let's dive into the digital depths of your browser activity this [x]."
+      },
+      {
+        "id": "introRecap5",
+        "text": "Ready to rewind? Here's a glance back at your browsing from this [x]."
+      },
+      {
+        "id": "introRecap6",
+        "text": "Peek into your past pages—here's your browser history for this [x]."
+      }
+    ],
       "genericCategorical": [
         {
           "id": "genCat1",

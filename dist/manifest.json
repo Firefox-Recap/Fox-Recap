@@ -32,8 +32,13 @@
     "128": "assets/icon128.png"
   },
   "web_accessible_resources": [
-    "assets/sql-wasm.wasm"
-  ],
+  "assets/sql-wasm.wasm",
+  "storage/domainLocks.json",
+  "models/distilbert-base-uncased-mnli/model_quantized.onnx",
+  "models/distilbert-base-uncased-mnli/config.json",
+  "models/distilbert-base-uncased-mnli/tokenizer.json",
+  "models/distilbert-base-uncased-mnli/tokenizer_config.json"
+],
+
   "content_security_policy": "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval'; object-src 'self'; worker-src 'self'; connect-src *;"
 }
-

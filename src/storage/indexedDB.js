@@ -24,7 +24,6 @@ export async function getStoredCSV() {
     return "Domain,Title,Category\n"; // Default CSV header
   }
 
-  // 🔥 Filter out rows that contain "[User-labeled]" if you want to exclude them
   const cleanedCSV = storedCSV.histofyUserCSV
     .split("\n")
     .filter(line => !line.includes("[User-labeled]"))
@@ -33,23 +32,16 @@ export async function getStoredCSV() {
   return cleanedCSV;
 }
 
-/**
- * Appends a new classification entry to the CSV in browser.storage.local,
- * including a timestamp to differentiate entries.
- */
 export async function updateStoredCSV(domain, title, category) {
-  // 1️⃣ Get existing CSV data
   let csvContent = await getStoredCSV();
 
   if (!csvContent.includes("Domain,Title,Category")) {
     csvContent = "Domain,Title,Category\n";
   }
 
-  // 2️⃣ Build the new entry (you can remove the timestamp if you don’t need it)
-  const timestamp = new Date().toISOString(); // e.g. "2025-03-11T12:34:56.789Z"
+  const timestamp = new Date().toISOString();
   const newEntry = `${domain},${title},${category},${timestamp}`;
 
-  // 3️⃣ Prevent duplicates & append
   if (!csvContent.includes(`${domain},${title},${category}`)) {
     csvContent += `${newEntry}\n`;
     await browser.storage.local.set({ histofyUserCSV: csvContent });
@@ -73,7 +65,6 @@ async function initDB() {
       if (!db.objectStoreNames.contains(EMBEDDING_STORE)) {
         db.createObjectStore(EMBEDDING_STORE, { keyPath: "title" });
       }
-      // Remove userLabels store if it existed
       if (db.objectStoreNames.contains("userLabels")) {
         db.deleteObjectStore("userLabels");
       }
@@ -93,24 +84,18 @@ export async function updateIndexedDB(domain, category) {
   }
 }
 
-/* ------------------------------------------------------------------
-   CLASSIFICATION + EMBEDDINGS
-------------------------------------------------------------------- */
 export async function getCachedClassification(domain, title) {
   if (!domain || !title) return null;
   const db = await initDB();
 
-  // Try fetching by exact title first
   let cachedResult = await db.get(CLASSIFICATION_STORE, title);
   if (cachedResult) return cachedResult.category;
 
-  // If no match, try by domain
   cachedResult = await db.get(CLASSIFICATION_STORE, domain);
   if (cachedResult) return cachedResult.category;
 
-  return null; // Default if nothing is found
+  return null;
 }
-
 
 export async function cacheClassification(title, category) {
   if (!title || !category) return;
@@ -118,11 +103,19 @@ export async function cacheClassification(title, category) {
   await db.put(CLASSIFICATION_STORE, { title, category });
 }
 
-/** 🏷 Store an embedding in the "embeddings" store */
+/** 
+ * 🏷 Store an embedding in IndexedDB and back it up in browser.storage.local 
+ */
 export async function cacheEmbedding(title, embedding, category) {
   if (!title || !embedding || !category) return;
   const db = await initDB();
   await db.put(EMBEDDING_STORE, { title, embedding, category });
+
+  const { histofyEmbeddingBackup } = await browser.storage.local.get("histofyEmbeddingBackup");
+  const updated = histofyEmbeddingBackup || [];
+  updated.push({ title, embedding, category });
+  await browser.storage.local.set({ histofyEmbeddingBackup: updated });
+  console.log(`💾 Backed up embedding to browser.storage.local: ${title}`);
 }
 
 export async function getMatchingEmbedding(newEmbedding) {
@@ -169,7 +162,6 @@ export async function removeAllStaleForDomain(domain) {
   if (!domain) return;
   const db = await initDB();
 
-  // 1️⃣ Remove embeddings for this domain
   const allEmbeddings = await db.getAll(EMBEDDING_STORE);
   for (const entry of allEmbeddings) {
     if (entry.title.includes(`(Domain: ${domain})`)) {
@@ -178,12 +170,50 @@ export async function removeAllStaleForDomain(domain) {
     }
   }
 
-  // 2️⃣ Remove classifications for this domain
   const allClassifications = await db.getAll(CLASSIFICATION_STORE);
   for (const entry of allClassifications) {
     if (entry.title.includes(`(Domain: ${domain})`)) {
       await db.delete(CLASSIFICATION_STORE, entry.title);
       console.log(`🗑 Removed stale classification: ${entry.title}`);
     }
+  }
+}
+
+/**
+ * 🛠 Manually restore all embeddings from backup (call in dev console)
+ * `await window.recoverEmbeddingsFromBackup()`
+ */
+window.recoverEmbeddingsFromBackup = async () => {
+  const { histofyEmbeddingBackup } = await browser.storage.local.get("histofyEmbeddingBackup");
+  if (!histofyEmbeddingBackup || !Array.isArray(histofyEmbeddingBackup)) {
+    console.warn("⚠️ No embedding backup found.");
+    return;
+  }
+  const db = await initDB();
+  for (const entry of histofyEmbeddingBackup) {
+    await db.put(EMBEDDING_STORE, entry);
+  }
+  console.log(`✅ Restored ${histofyEmbeddingBackup.length} embeddings from backup.`);
+};
+
+/**
+ * ✅ Auto-restore if no embeddings found
+ */
+export async function loadEmbeddingRecoveryIfMissing() {
+  const db = await initDB();
+  const existing = await db.getAll(EMBEDDING_STORE);
+  if (existing.length === 0) {
+    const backup = await browser.storage.local.get("histofyEmbeddingBackup");
+    if (backup.histofyEmbeddingBackup) {
+      const entries = backup.histofyEmbeddingBackup;
+      for (const entry of entries) {
+        await db.put(EMBEDDING_STORE, entry);
+      }
+      console.log(`✅ Auto-restored ${entries.length} embeddings from backup.`);
+    } else {
+      console.warn("❌ No embedding backup found to restore from.");
+    }
+  } else {
+    console.log("🧠 IndexedDB embeddings already loaded.");
   }
 }

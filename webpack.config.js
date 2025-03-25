@@ -46,7 +46,8 @@ export default {
         { from: 'src/popup/popup.css', to: 'popup.css' },
         { from: 'src/options/options.html', to: 'options.html' },
         { from: 'src/options/options.css', to: 'options.css' },
-        { from: 'assets', to: 'assets' }
+        { from: 'assets', to: 'assets' },
+        { from: 'src/storage/domainLocks.json', to: 'storage/domainLocks.json' } // ✅ Add this line
       ]
     })
   ],
@@ -59,6 +60,5 @@ export default {
     }
   }
 };
-
 
 

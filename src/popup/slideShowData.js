@@ -1,17 +1,24 @@
 // src/popup/slideShowData.js
 import promptsData from './prompts.json';
 
-const getRandomIntroPrompt = () => {
-  const introPrompts = promptsData.prompts.introRecap;
-  const randomIndex = Math.floor(Math.random() * introPrompts.length);
-  return introPrompts[randomIndex].text;
+const timeRangeMap = {
+  day: 'this day',
+  week: 'this week',
+  month: 'this month'
 };
 
-export const data = [
+export const getRandomIntroPrompt = (timeRange) => {
+  const introPrompts = promptsData.prompts.introRecap;
+  const randomIndex = Math.floor(Math.random() * introPrompts.length);
+  let prompt = introPrompts[randomIndex].text;
+  return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
+};
+
+export const getData = (timeRange) => [
   {
     id: 'slide1',
     img: '/assets/images/11.png', 
-    prompt: getRandomIntroPrompt(),  // Randomly selected prompt from introRecap
+    prompt: getRandomIntroPrompt(timeRange),
     metric: false,
     metric_type: null
   },

@@ -17,6 +17,20 @@ const SlideShow = ({setView, timeRange, prompts}) => {
         setIndex(index + 1);
     }
 
+    useEffect(() => {
+        const timer = setInterval(() => {
+          setIndex(prevIndex => {
+            if (prevIndex < data.length - 1) {
+              return prevIndex + 1;
+            }
+            return prevIndex;
+          });
+        }, 5000);
+    
+        return () => clearInterval(timer);
+      }, [index]);
+    
+
 
   return (
     <div

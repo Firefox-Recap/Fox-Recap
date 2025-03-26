@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 import { getData } from './slideShowData';
 import './popup.css';
 
-const SlideShow = ({ setView, timeRange }) => {
-    const slides = getData(timeRange);
+const SlideShow = ({ setView, timeRange, historyData }) => {
+    const slides = getData(timeRange, historyData);
     const [index, setIndex] = useState(0);
     const previousDisable = index === 0;
     const nextDisable = index >= slides.length - 1;

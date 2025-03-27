@@ -4,13 +4,50 @@
  */
 
 import { openDB } from "idb";
+import { parse } from "tldts";
 
 const DB_NAME = "histofyDB";
-const DB_VERSION = 2;
+const DB_VERSION = 3; // ⬅️ Bump version from 2 → 3
 
 const CLASSIFICATION_STORE = "classifications";
 const EMBEDDING_STORE = "embeddings";
 const VISIT_STORE = "visits";
+
+/**
+ * ✅ Initialize IndexedDB with stores:
+ * - classifications
+ * - embeddings
+ * - visits
+ * - visitDurations (NEW)
+ */
+async function initDB() {
+  return openDB(DB_NAME, DB_VERSION, {
+    upgrade(db) {
+      if (!db.objectStoreNames.contains(CLASSIFICATION_STORE)) {
+        db.createObjectStore(CLASSIFICATION_STORE, { keyPath: "title" });
+      }
+      if (!db.objectStoreNames.contains(EMBEDDING_STORE)) {
+        db.createObjectStore(EMBEDDING_STORE, { keyPath: "title" });
+      }
+      if (!db.objectStoreNames.contains(VISIT_STORE)) {
+        db.createObjectStore(VISIT_STORE, { keyPath: "id", autoIncrement: true });
+      }
+
+      // ✅ Add new store for visitDurations
+      if (!db.objectStoreNames.contains("visitDurations")) {
+        const store = db.createObjectStore("visitDurations", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
+        store.createIndex("domain", "domain", { unique: false });
+      }
+
+      if (db.objectStoreNames.contains("userLabels")) {
+        db.deleteObjectStore("userLabels");
+      }
+    },
+  });
+}
 
 export async function getStoredCSV() {
   const storedCSV = await browser.storage.local.get("histofyUserCSV");
@@ -19,7 +56,7 @@ export async function getStoredCSV() {
 
   if (!storedCSV.histofyUserCSV) {
     console.warn("❌ No CSV data found in browser.storage.local!");
-    return "Domain,Title,Category\n"; // Default CSV header
+    return "Domain,Title,Category\n";
   }
 
   const cleanedCSV = storedCSV.histofyUserCSV
@@ -49,34 +86,6 @@ export async function updateStoredCSV(domain, title, category) {
   }
 }
 
-/**
- * ✅ Initialize IndexedDB with 3 stores:
- * - classifications
- * - embeddings
- * - visits (NEW)
- */
-async function initDB() {
-  return openDB(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      if (!db.objectStoreNames.contains(CLASSIFICATION_STORE)) {
-        db.createObjectStore(CLASSIFICATION_STORE, { keyPath: "title" });
-      }
-      if (!db.objectStoreNames.contains(EMBEDDING_STORE)) {
-        db.createObjectStore(EMBEDDING_STORE, { keyPath: "title" });
-      }
-      if (!db.objectStoreNames.contains(VISIT_STORE)) {
-        db.createObjectStore(VISIT_STORE, { keyPath: "id", autoIncrement: true });
-      }
-      if (db.objectStoreNames.contains("userLabels")) {
-        db.deleteObjectStore("userLabels");
-      }
-    },
-  });
-}
-
-/**
- * ✅ NEW: Return all visit records for analytics
- */
 export async function getAllVisits() {
   const db = await initDB();
   const tx = db.transaction(VISIT_STORE, 'readonly');
@@ -227,3 +236,51 @@ export async function loadEmbeddingRecoveryIfMissing() {
     console.log("🧠 IndexedDB embeddings already loaded.");
   }
 }
+
+/**
+ * ✅ Track visit duration for a domain
+ * @param {string} domain - The root domain visited
+ * @param {number} durationMs - Duration in milliseconds
+ */
+export async function trackVisitDuration(domain, durationMs) {
+  if (!domain || typeof durationMs !== "number") return;
+
+  try {
+    const db = await initDB();
+    const tx = db.transaction("visitDurations", "readwrite");
+    const store = tx.objectStore("visitDurations");
+
+    const rootDomain = parse(domain)?.domain;
+
+    const entry = {
+    domain: rootDomain || domain,
+    duration: durationMs,
+    timestamp: Date.now(),
+  };
+
+    await store.add(entry);
+    await tx.done;
+    console.log(`⏱️ Visit duration tracked: ${domain} - ${durationMs} ms`);
+  } catch (err) {
+    console.error("❌ Error tracking visit duration:", err);
+  }
+}
+/**
+ * ✅ Get raw list of visit durations (no aggregation)
+ * Returns: [{ domain: 'hulu.com', duration: 16350 }, ...]
+ */
+export async function getVisitDurations() {
+  const db = await initDB(); // Ensure DB is ready
+  const visits = await db.getAll("visitDurations");
+
+  return visits
+    .filter((entry) => entry?.domain && typeof entry.duration === "number")
+    .map(({ domain, duration }) => ({
+      domain,
+      duration,
+    }));
+}
+
+
+export { initDB };
+

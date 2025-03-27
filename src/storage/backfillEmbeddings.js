@@ -3,16 +3,16 @@
  * @description Background embedding backfill for finalBatches.
  */
 
-import { openDB } from "idb";                   // ✅ Use the same idb library
 import { getEmbedding } from "../../models/transformers.js";
 import { cacheEmbedding } from "./indexedDB.js";
 import { getAllFinalBatches } from "./StorageManager.js";
+import { initDB } from "./indexedDB.js";
 
 export async function backfillEmbeddingsIfMissing() {
   console.log("🔁 backfillEmbeddingsIfMissing() triggered");
 
   // 1) Open DB with idb
-  const db = await openDB("histofyDB", 2);
+  const db = await initDB();
 
   // 2) Start a read-only transaction
   const tx = db.transaction("embeddings", "readonly");

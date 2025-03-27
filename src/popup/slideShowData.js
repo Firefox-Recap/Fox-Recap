@@ -2,10 +2,18 @@
 import promptsData from './prompts.json';
 
 // Helper to get a random intro prompt from your prompts JSON
-const getRandomIntroPrompt = () => {
+const getRandomIntroPrompt = (timeRange) => {
+  console.log(timeRange);
   const introPrompts = promptsData.prompts.introRecap;
   const randomIndex = Math.floor(Math.random() * introPrompts.length);
-  return introPrompts[randomIndex].text;
+  let prompt = introPrompts[randomIndex].text;
+  return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
+};
+
+const timeRangeMap = {
+  day: 'today',
+  week: 'this week',
+  month: 'this month'
 };
 
 const backgroundImages = [
@@ -36,11 +44,11 @@ const shuffle = (array) => {
 // Shuffle the background images (make a copy to avoid mutating the original array)
 const shuffledImages = shuffle([...backgroundImages]);
 
-export const data = [
+export const getData = (timeRange, historyData) => [
   {
     id: 'slide1',
     img: shuffledImages[0],
-    prompt: getRandomIntroPrompt(), // Randomly selected prompt from introRecap
+    prompt: getRandomIntroPrompt(timeRange), // Randomly selected prompt from introRecap
     metric: false,
     metric_type: null
   },

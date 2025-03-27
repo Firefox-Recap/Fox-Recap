@@ -3,27 +3,27 @@
       "introRecap": [
       {
         "id": "introRecap1",
-        "text": "Here’s a recap of your browser activity this [x]."
+        "text": "Here’s a recap of your browser activity [x]."
       },
       {
         "id": "introRecap2",
-        "text": "Let's check out what was browsed this [x]."
+        "text": "Let's check out what was browsed [x]."
       },
       {
         "id": "introRecap3",
-        "text": "Here’s what your browsing looked like this [x]."
+        "text": "Here’s what your browsing looked like [x]."
       },
       {
         "id": "introRecap4",
-        "text": "Let's dive into the digital depths of your browser activity this [x]."
+        "text": "Let's dive into the digital depths of your browser activity [x]."
       },
       {
         "id": "introRecap5",
-        "text": "Ready to rewind? Here's a glance back at your browsing from this [x]."
+        "text": "Ready to rewind? Here's a glance back at your browsing from [x]."
       },
       {
         "id": "introRecap6",
-        "text": "Peek into your past pages—here's your browser history for this [x]."
+        "text": "Peek into your past pages—here's your browser history for [x]."
       }
     ],
       "genericCategorical": [

@@ -12,8 +12,9 @@ import { loadModel, classifyPage, getEmbedding,loadEmbeddingModel } from "../../
 import { DOMAIN_LOCKS } from "../storage/domainLocks.js";
 import { backfillEmbeddingsIfMissing } from "../storage/backfillEmbeddings.js";
 import { getTopVisitedDomains } from './analytics.js';
-import { openDB } from "idb"; // ✅ Make sure this is at the top of background.js
 import { shouldBlockDomain } from "../storage/privacyGuard.js";
+import { trackVisitDuration } from "../storage/indexedDB.js";
+import { initDB } from "../storage/indexedDB.js";
 
 
 
@@ -48,10 +49,19 @@ import {
 let db = null; // local in-memory DB
 let dbInMemoryReady = null;
 
+let activeTabInfo = {
+  tabId: null,
+  domain: null,
+  startTime: null,
+};
+
+
 const recentUrls = new Set();
 const DUPLICATE_TIMEOUT_MS = 5000;
 const classificationQueue = [];
 let batchTimer = null;
+
+
 
 /* --------------------------------------------------
    1) RULE-BASED CLASSIFICATION
@@ -226,6 +236,15 @@ function normalizeUrl(u) {
     return u;
   }
 }
+
+function getDomainFromURL(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
 
 /* --------------------------------------------------
    3) Zero-Shot AI Classification Fallback
@@ -455,7 +474,7 @@ async function saveHistory(url, title, category) {
   }
 
   try {
-    const visitDB = await openDB("histofyDB", 2);
+    const visitDB = await initDB();
     const tx = visitDB.transaction("visits", "readwrite");
     await tx.store.add({
       domain: normalizedDomain,
@@ -660,6 +679,75 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.warn("⚠️ [Background] Unrecognized message:", msg);
   }
 });
+
+/* --------------------------------------------------
+   12) VISIT DURATION TRACKING
+----------------------------------------------------*/
+browser.tabs.onActivated.addListener(async (activeInfo) => {
+  const { tabId } = activeInfo;
+  const tab = await browser.tabs.get(tabId);
+  const newDomain = getDomainFromURL(tab.url);
+
+  const now = Date.now();
+
+  if (activeTabInfo.domain && activeTabInfo.domain !== newDomain && activeTabInfo.startTime) {
+    const duration = now - activeTabInfo.startTime;
+    console.log(`🟡 Tab switch: ${activeTabInfo.domain} → ${newDomain} after ${duration} ms`);
+    await trackVisitDuration(activeTabInfo.domain, duration);
+  }
+
+  activeTabInfo = {
+    tabId,
+    domain: newDomain,
+    startTime: now,
+  };
+});
+
+browser.tabs.onRemoved.addListener(async (tabId) => {
+  if (activeTabInfo.tabId === tabId && activeTabInfo.domain && activeTabInfo.startTime) {
+    const duration = Date.now() - activeTabInfo.startTime;
+    console.log(`🟡 Tab closed: ${activeTabInfo.domain} after ${duration} ms`);
+    await trackVisitDuration(activeTabInfo.domain, duration);
+    activeTabInfo = { tabId: null, domain: null, startTime: null };
+  }
+});
+
+browser.windows.onFocusChanged.addListener(async (windowId) => {
+  if (windowId === browser.windows.WINDOW_ID_NONE) return;
+
+  try {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const activeTab = tabs[0];
+    const domain = getDomainFromURL(activeTab.url);
+    const now = Date.now();
+
+    if (activeTabInfo.domain && activeTabInfo.domain !== domain && activeTabInfo.startTime) {
+      const duration = now - activeTabInfo.startTime;
+      console.log(`🟡 Window focus change: ${activeTabInfo.domain} → ${domain} after ${duration} ms`);
+      await trackVisitDuration(activeTabInfo.domain, duration);
+    }
+
+    activeTabInfo = {
+      tabId: activeTab.id,
+      domain,
+      startTime: now,
+    };
+  } catch (err) {
+    console.warn("❌ Could not handle window focus change:", err);
+  }
+});
+
+// ✅ Optional safety: Flush visit duration on suspend/shutdown
+browser.runtime.onSuspend?.addListener(async () => {
+  const now = Date.now();
+  if (activeTabInfo.domain && activeTabInfo.startTime) {
+    const duration = now - activeTabInfo.startTime;
+    console.log(`💾 Runtime suspend: Flushing ${activeTabInfo.domain} after ${duration} ms`);
+    await trackVisitDuration(activeTabInfo.domain, duration);
+  }
+});
+
+
 
 
 

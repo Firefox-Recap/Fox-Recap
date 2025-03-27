@@ -4,12 +4,11 @@ import { getData } from './slideShowData';
 import './popup.css';
 
 const SlideShow = ({ setView, timeRange }) => {
-    const data = getData(timeRange);
+    const data = getData(timeRange);  
     const [index, setIndex] = useState(0);
     const previousDisable = index === 0;
     const nextDisable = index >= data.length - 1;
     const videoRef = useRef(null);
-
 
     const handlePrevious = () => {
         setIndex(index - 1);
@@ -36,7 +35,7 @@ const SlideShow = ({ setView, timeRange }) => {
         }, 5000);
     
         return () => clearInterval(timer);
-      }, [index]);
+      }, [index], data.length);
 
     return (
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
@@ -64,8 +63,8 @@ const SlideShow = ({ setView, timeRange }) => {
           x
           </button>
   
-          <h1 style={{ color: "#fff", textAlign: "center", width: "100%", marginTop: "300px" }}>
-              {data[index].prompt}
+          <h1 style={{ color: "#fff", textAlign: "center", width: "100%", position: 'absolute', top: '50%' }}>
+          {data[index] && data[index].prompt}
           </h1>
   
         <button 

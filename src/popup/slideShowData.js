@@ -10,6 +10,7 @@ const getRandomIntroPrompt = (timeRange) => {
   return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
 };
 
+
 const timeRangeMap = {
   day: 'today',
   week: 'this week',

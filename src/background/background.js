@@ -11,6 +11,11 @@ import { CATEGORY_OPTIONS } from "../../models/transformers.js";
 import { loadModel, classifyPage, getEmbedding,loadEmbeddingModel } from "../../models/transformers.js";
 import { DOMAIN_LOCKS } from "../storage/domainLocks.js";
 import { backfillEmbeddingsIfMissing } from "../storage/backfillEmbeddings.js";
+import { getTopVisitedDomains } from './analytics.js';
+import { openDB } from "idb"; // ✅ Make sure this is at the top of background.js
+import { shouldBlockDomain } from "../storage/privacyGuard.js";
+
+
 
 
 
@@ -345,12 +350,18 @@ export async function classifyWithCache(url, title) {
    5) BATCH CLASSIFICATION
 ----------------------------------------------------*/
 function queueClassification(url, title) {
+  if (shouldBlockDomain(url, title)) {
+    console.log("⛔ Blocked by privacyGuard (queue):", url);
+    return;
+  }
+
   if (classificationQueue.some(item => item.url === url)) return;
   classificationQueue.push({ url, title });
   if (!batchTimer) {
     batchTimer = setTimeout(processBatchClassification, 5000);
   }
 }
+
 
 async function processBatchClassification() {
   if (classificationQueue.length === 0) {
@@ -399,15 +410,13 @@ async function saveHistory(url, title, category) {
     return;
   }
 
-  const normalizedUrl = normalizeUrl(url); // Use the existing normalizeUrl function
-  const normalizedDomain = normalizeDomain(new URL(normalizedUrl).hostname); // Use the existing normalizeDomain function
-
-  // Exclude third-party domains (e.g., ad trackers, analytics)
-  const thirdPartyDomains = ["doubleclick.net", "googletagmanager.com", "adsrvr.org", "pinterest.com", "snapchat.com"];
-  if (thirdPartyDomains.some(tpDomain => normalizedDomain.endsWith(tpDomain))) {
-    console.log(`❌ Skipping third-party domain: ${normalizedDomain}`);
+  if (shouldBlockDomain(url, title)) {
+    console.log("⛔ Skipping blocked/suspicious domain:", url);
     return;
   }
+
+  const normalizedUrl = normalizeUrl(url);
+  const normalizedDomain = normalizeDomain(new URL(normalizedUrl).hostname);
 
   if (!normalizedDomain) {
     console.warn("❗ Skipping entry with empty domain.");
@@ -422,7 +431,6 @@ async function saveHistory(url, title, category) {
   recentUrls.add(normalizedDomain);
   setTimeout(() => recentUrls.delete(normalizedDomain), DUPLICATE_TIMEOUT_MS);
 
-  // Also store classification in IndexedDB
   await cacheClassification(title, category);
 
   try {
@@ -436,7 +444,6 @@ async function saveHistory(url, title, category) {
     stmt.run([normalizedUrl, title, category]);
     stmt.free();
 
-    // Mirror to local storage for the popup
     const { historyData } = await browser.storage.local.get("historyData");
     const updatedHistoryData = historyData || [];
     updatedHistoryData.push({ url: normalizedUrl, title, category });
@@ -444,10 +451,25 @@ async function saveHistory(url, title, category) {
 
     console.log(`✅ History saved: ${title} -> ${category}`);
   } catch (err) {
-    console.error("❌ Error saving history in background in-memory DB:", err);
+    console.error("❌ Error saving history:", err);
   }
 
-  // Append to CSV
+  try {
+    const visitDB = await openDB("histofyDB", 2);
+    const tx = visitDB.transaction("visits", "readwrite");
+    await tx.store.add({
+      domain: normalizedDomain,
+      timestamp: Date.now(),
+      url: normalizedUrl,
+      title,
+      category,
+    });
+    await tx.done;
+    console.log(`📊 Visit stored in IndexedDB for domain: ${normalizedDomain}`);
+  } catch (e) {
+    console.error("❌ Error writing to visits store:", e);
+  }
+
   try {
     if (normalizedDomain && category) {
       await updateStoredCSV(normalizedDomain, title, category);
@@ -459,6 +481,8 @@ async function saveHistory(url, title, category) {
     await updateStoredCSV(normalizedUrl, title, category);
   }
 }
+
+
 
 /* --------------------------------------------------
    8) ATTACH EVENT LISTENERS
@@ -548,57 +572,98 @@ export async function updateCSVStorage() {
 /* --------------------------------------------------
    11) USER LABELS / MESSAGES
 ----------------------------------------------------*/
-browser.runtime.onMessage.addListener(async (msg, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  console.log("📩 [Background] Message received:", msg); // 🔥 Top-level debug log
+
+  // --- User Label Set ---
   if (msg.action === "setUserLabel") {
     const { domain, category } = msg;
-    console.log(`👤 User-labeled domain=${domain} => ${category}`);
+    console.log(`👤 [Background] User-labeled domain=${domain} => ${category}`);
 
     (async () => {
       try {
         await sqliteReady;
         await setUserLabel(domain, category);
-
-        // Remove stale classification from IndexedDB
         await removeAllStaleForDomain(domain);
-
-        // Re-generate CSV
         await updateCSVStorage();
 
-        // Refresh UI
         await browser.storage.local.set({ historyLoading: true });
         setTimeout(() => browser.storage.local.set({ historyLoading: false }), 500);
 
-        console.log("✅ User label updated successfully.");
+        console.log("✅ [Background] User label updated successfully.");
+        sendResponse({ success: true });
       } catch (error) {
-        console.error("❌ Error setting user label:", error);
+        console.error("❌ [Background] Error setting user label:", error);
+        sendResponse({ success: false, error: error.message });
       }
     })();
+
+    return true; // Keep channel open
   }
 
+  // --- CSV Request ---
   else if (msg.action === "getCSV") {
-    console.log("📁 Fetching stored CSV...");
+    console.log("📁 [Background] Fetching stored CSV...");
+
     (async () => {
       try {
         const csvData = await getStoredCSV();
-        console.log("✅ CSV Data Retrieved:", csvData);
+        console.log("✅ [Background] CSV Data Retrieved:", csvData);
         sendResponse({ csvData });
       } catch (err) {
-        console.error("❌ Error retrieving CSV:", err);
+        console.error("❌ [Background] Error retrieving CSV:", err);
         sendResponse({ csvData: null });
       }
     })();
-    return true; // Keep the message channel open for async
+
+    return true; // Keep channel open
   }
 
+  // --- Run Batch Classification ---
   else if (msg.action === "runBatchClassification") {
-    console.log("🚀 Starting Batch Classification...");
-    import("./batchClassification.js")
-      .then((module) => {
-        module.batchClassifySites();
+    console.log("🚀 [Background] Starting Batch Classification...");
+
+    (async () => {
+      try {
+        const module = await import("./batchClassification.js");
+        await module.batchClassifySites();
+        console.log("✅ [Background] Batch classification completed.");
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error("❌ [Background] Error loading batchClassification.js:", err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+
+    return true;
+  }
+
+  // --- Get Top Visited Domains ---
+  else if (msg.action === "GET_TOP_VISITED_DOMAINS") {
+    console.log("📊 [Background] Received GET_TOP_VISITED_DOMAINS request");
+
+    getTopVisitedDomains(msg.limit || 10)
+      .then((data) => {
+        console.log("📊 [Background] Top domains:", data);
+        sendResponse({ success: true, data });
       })
-      .catch((err) => console.error("❌ Error loading batchClassification.js:", err));
+      .catch((err) => {
+        console.error("❌ [Background] Error in getTopVisitedDomains:", err);
+        sendResponse({ success: false, error: err.message });
+      });
+
+    return true;
+  }
+
+  // --- Unknown Message ---
+  else {
+    console.warn("⚠️ [Background] Unrecognized message:", msg);
   }
 });
+
+
+
+
 
 /* --------------------------------------------------
    13) MANUAL CONSOLE UPDATES (Optional)

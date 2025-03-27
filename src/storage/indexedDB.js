@@ -1,11 +1,8 @@
 /**
  * @file indexedDB.js
- * @description This module provides a comprehensive set of utility functions for managing data storage using IndexedDB and browser local storage.
- *              It includes functionality for caching classifications and embeddings, managing and updating CSV data, and cleaning up stale or outdated data entries.
- *              The module is designed to initialize and maintain the "histofyDB" database with two primary object stores: "classifications" and "embeddings".
- *              Additionally, it ensures efficient data retrieval, updates, and storage operations, while offering compatibility with browser storage APIs.
- * @module storage/indexedDB
+ * @description Utility functions for IndexedDB and browser storage.
  */
+
 import { openDB } from "idb";
 
 const DB_NAME = "histofyDB";
@@ -13,6 +10,7 @@ const DB_VERSION = 2;
 
 const CLASSIFICATION_STORE = "classifications";
 const EMBEDDING_STORE = "embeddings";
+const VISIT_STORE = "visits";
 
 export async function getStoredCSV() {
   const storedCSV = await browser.storage.local.get("histofyUserCSV");
@@ -52,9 +50,10 @@ export async function updateStoredCSV(domain, title, category) {
 }
 
 /**
- * Initialize IndexedDB with two stores:
- * 1) classifications
- * 2) embeddings
+ * ✅ Initialize IndexedDB with 3 stores:
+ * - classifications
+ * - embeddings
+ * - visits (NEW)
  */
 async function initDB() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -65,11 +64,26 @@ async function initDB() {
       if (!db.objectStoreNames.contains(EMBEDDING_STORE)) {
         db.createObjectStore(EMBEDDING_STORE, { keyPath: "title" });
       }
+      if (!db.objectStoreNames.contains(VISIT_STORE)) {
+        db.createObjectStore(VISIT_STORE, { keyPath: "id", autoIncrement: true });
+      }
       if (db.objectStoreNames.contains("userLabels")) {
         db.deleteObjectStore("userLabels");
       }
     },
   });
+}
+
+/**
+ * ✅ NEW: Return all visit records for analytics
+ */
+export async function getAllVisits() {
+  const db = await initDB();
+  const tx = db.transaction(VISIT_STORE, 'readonly');
+  const store = tx.objectStore(VISIT_STORE);
+  const visits = await store.getAll();
+  await tx.done;
+  return visits;
 }
 
 export async function updateIndexedDB(domain, category) {
@@ -103,9 +117,6 @@ export async function cacheClassification(title, category) {
   await db.put(CLASSIFICATION_STORE, { title, category });
 }
 
-/** 
- * 🏷 Store an embedding in IndexedDB and back it up in browser.storage.local 
- */
 export async function cacheEmbedding(title, embedding, category) {
   if (!title || !embedding || !category) return;
   const db = await initDB();
@@ -180,8 +191,7 @@ export async function removeAllStaleForDomain(domain) {
 }
 
 /**
- * 🛠 Manually restore all embeddings from backup (call in dev console)
- * `await window.recoverEmbeddingsFromBackup()`
+ * 🛠 Dev Console Restore: window.recoverEmbeddingsFromBackup()
  */
 window.recoverEmbeddingsFromBackup = async () => {
   const { histofyEmbeddingBackup } = await browser.storage.local.get("histofyEmbeddingBackup");
@@ -197,7 +207,7 @@ window.recoverEmbeddingsFromBackup = async () => {
 };
 
 /**
- * ✅ Auto-restore if no embeddings found
+ * ✅ Auto-restore if empty
  */
 export async function loadEmbeddingRecoveryIfMissing() {
   const db = await initDB();

@@ -1,33 +1,18 @@
-<!-- popup.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Histofy</title>
-  <link rel="stylesheet" href="popup.css">
+  <meta charset="UTF-8" />
+  <title>Histofy Test</title>
+  <style>
+    body { font-family: sans-serif; padding: 10px; background: #111; color: #0f0; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 6px 0; }
+  </style>
 </head>
 <body>
-  <div class="popup-container">
-    <h2>Histofy - Browsing History</h2>
-
-    <p id="loading-message" style="display: none;">⏳ Loading history...</p>
-
-    <div class="dwm-nav">
-      <button class="dwm-nav-item active" onclick="selectTab(this)">Day</button>
-      <button class="dwm-nav-item" onclick="selectTab(this)">Week</button>
-      <button class="dwm-nav-item" onclick="selectTab(this)">Month</button>
-      <button id="download-csv-btn">Download CSV</button>
-
-    </div>
-
-    <h2 id="selected-view">Day</h2>
-    <div id="graph"></div>
-    <div id="summary">Summary:</div>
-
-    <ul id="history-list"></ul>
-  </div>
-
-  <!-- Ensure popup.js is loaded after the DOM -->
+  <h2>🔥 Top Visited Domains</h2>
+  <ul id="top-domains-list"><li>Loading...</li></ul>
   <script src="popup.bundle.js"></script>
+
 </body>
 </html>

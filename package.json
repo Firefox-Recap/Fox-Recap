@@ -22,7 +22,8 @@
     "crypto-browserify": "^3.12.1",
     "idb": "^8.0.2",
     "path-browserify": "^1.0.1",
-    "sql.js": "1.6.2"
+    "sql.js": "1.6.2",
+    "tldts": "^6.1.85"
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",

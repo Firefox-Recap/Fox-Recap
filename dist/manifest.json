@@ -19,7 +19,7 @@
   },
   "background": {
     "scripts": ["background.bundle.js", "batchClassification.bundle.js"],
-    "persistent": false
+    "persistent": true
   },
   "content_scripts": [
     {

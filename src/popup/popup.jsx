@@ -1,21 +1,23 @@
+// src/popup/popup.jsx
 import React, { useState, useEffect, useCallback } from 'react';
-import { createRoot } from "react-dom/client";
-//import Slides from "./BackgroundSlider";
+import { createRoot } from 'react-dom/client';
 import HomeView from './HomeView';
-import IntroToRecap from './IntroToRecap';
-import TopFiveSummary from './TopFiveSummary';
-import ChartView from './ChartView';
-//import promptsData from "./prompts.json";
+import SlideShow from './SlideShow';
+import promptsData from './prompts.json';
 
 const Popup = () => {
-  const [view, setView] = useState("home");
-  const [period, setPeriod] = useState("day"); 
+  const [view, setView] = useState('home'); // "home" or "slides"
+  const [timeRange, setTimeRange] = useState(null);
   const [historyData, setHistoryData] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Get a random prompt from the Education category
-  // const educationPrompts = promptsData.prompts.topCategories.Education;
-  // const randomPrompt = educationPrompts[Math.floor(Math.random() * educationPrompts.length)];
+  const handleTimeRangeSelect = async (range) => { // Made this function async
+    setLoading(true);
+    setTimeRange(range);
+    setView('slides');
+    await fetchHistory(range);
+    setLoading(false);
+  };
 
   useEffect(() => {
     if (view !== "home") {
@@ -23,7 +25,7 @@ const Popup = () => {
     }
   }, [view]);
 
-  const fetchHistory = useCallback(async (period) => {
+  const fetchHistory = useCallback(async (range) => {
     setLoading(true);
     try {
       const { historyLoading, historyData } = await browser.storage.local.get([
@@ -70,32 +72,21 @@ const Popup = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (view !== "home") {
-      fetchHistory(view);
-    }
-  }, [view, fetchHistory]);
-
-  
-
-  const handleTimePeriodClick = async (selectedPeriod) => {
-    setLoading(true);
-    setPeriod(selectedPeriod);
-    setView("introRecap");
-    await fetchHistory(selectedPeriod);
-    setLoading(false);
-  };
-
   return (
-    <div className="container" style={{ position: "relative", height: "100vh" }}>
-      {view === "home" && <HomeView setView={setView} handleTimePeriodClick={handleTimePeriodClick} />}
-      {view === "introRecap" && <IntroToRecap setView={setView} period={period} />}
-      {view === "topFive" && <TopFiveSummary historyData={historyData} setView={setView} />}
-      {view === "chart" && <ChartView historyData={historyData} setView={setView} />}
-      {loading && <p>Loading...</p>}
+    <div className="container">
+      {view === 'home' ? (
+        <HomeView onSelectTimeRange={handleTimeRangeSelect} />
+      ) : (
+        <SlideShow 
+          timeRange={timeRange} 
+          setView={setView} 
+          prompts={promptsData.prompts}
+          historyData={historyData}
+        />
+      )}
     </div>
-  );  
+  );
 };
 
-const root = createRoot(document.getElementById("root"));
+const root = createRoot(document.getElementById('root'));
 root.render(<Popup />);

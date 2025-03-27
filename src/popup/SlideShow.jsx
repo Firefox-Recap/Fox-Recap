@@ -1,13 +1,15 @@
 // src/popup/SlideShow.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getData } from './slideShowData';
 import './popup.css';
 
-const SlideShow = ({ setView, timeRange, historyData }) => {
-    const slides = getData(timeRange, historyData);
+const SlideShow = ({ setView, timeRange }) => {
+    const data = getData(timeRange);
     const [index, setIndex] = useState(0);
     const previousDisable = index === 0;
-    const nextDisable = index >= slides.length - 1;
+    const nextDisable = index >= data.length - 1;
+    const videoRef = useRef(null);
+
 
     const handlePrevious = () => {
         setIndex(index - 1);
@@ -16,6 +18,12 @@ const SlideShow = ({ setView, timeRange, historyData }) => {
     const handleNext = () => {
         setIndex(index + 1);
     }
+
+    useEffect(() => {
+      if (videoRef.current) {
+          videoRef.current.load();
+      }
+  }, [index]);
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -31,19 +39,12 @@ const SlideShow = ({ setView, timeRange, historyData }) => {
       }, [index]);
 
     return (
-      <div
-          style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundImage: `url(${slides[index].img})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              transition: 'background-image 0.5s ease-in-out'
-          }}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+      <video   ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+             onError={(e) => console.error("Error loading video:", e)}
       >
+          <source src={data[index].video} type="video/mp4" />
+      </video>
           <button
               onClick={(e) => {
                   e.stopPropagation();
@@ -64,7 +65,7 @@ const SlideShow = ({ setView, timeRange, historyData }) => {
           </button>
   
           <h1 style={{ color: "#fff", textAlign: "center", width: "100%", marginTop: "300px" }}>
-              {slides[index].prompt}
+              {data[index].prompt}
           </h1>
   
         <button 

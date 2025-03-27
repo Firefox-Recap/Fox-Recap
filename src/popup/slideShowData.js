@@ -1,59 +1,109 @@
-// src/popup/slideShowData.js
+
 import promptsData from './prompts.json';
 
-const timeRangeMap = {
-  day: 'this day',
-  week: 'this week',
-  month: 'this month'
-};
-
-export const getRandomIntroPrompt = (timeRange) => {
+// Helper to get a random intro prompt from your prompts JSON
+const getRandomIntroPrompt = (timeRange) => {
+  console.log(timeRange);
   const introPrompts = promptsData.prompts.introRecap;
   const randomIndex = Math.floor(Math.random() * introPrompts.length);
   let prompt = introPrompts[randomIndex].text;
   return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
 };
 
-const formatTopSites = (historyData) => {
-  const topFive = historyData.slice(0, 5);
-  const listItems = topFive.map((item, index) => 
-    `${index + 1}. ${item.domain} - ${item.visitCount} visits`
-  ).join(''); // Join with nothing in between because each item is wrapped in <div>
-  return `Top 5 Websites Visited:<br>${listItems}`;
+const timeRangeMap = {
+  day: 'today',
+  week: 'this week',
+  month: 'this month'
 };
+
+const backgroundImages = [
+  '/assets/images/1.png',
+  '/assets/images/2.png',
+  '/assets/images/3.png',
+  '/assets/images/4.png',
+  '/assets/images/5.png',
+  '/assets/images/6.png',
+  '/assets/images/7.png',
+  '/assets/images/8.png',
+  '/assets/images/9.png'
+];
+
+// Fisher-Yates shuffle algorithm to randomize the backgroundImages array
+const shuffle = (array) => {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]
+    ];
+  }
+  return array;
+};
+
+// Shuffle the background images (make a copy to avoid mutating the original array)
+const shuffledImages = shuffle([...backgroundImages]);
 
 export const getData = (timeRange, historyData) => [
   {
     id: 'slide1',
-    img: '/assets/images/11.png', 
-    prompt: getRandomIntroPrompt(timeRange),
+    img: shuffledImages[0],
+    prompt: getRandomIntroPrompt(timeRange), // Randomly selected prompt from introRecap
     metric: false,
     metric_type: null
   },
   {
     id: 'slide2',
-    img: '/assets/images/12.png', 
+    img: shuffledImages[1],
     prompt: 'Lets take a look of how many websites youve visited',
     metric: false,
     metric_type: null
   },
   {
     id: 'slide3',
-    img: '/assets/images/13.png', 
+    img: shuffledImages[2],
     prompt: null,
-    metric: true, 
+    metric: true,
     metric_type: 'total_websites_visited'
   },
   {
     id: 'slide4',
-    img: '/assets/images/13.png', 
-    prompt: formatTopSites(historyData),
-    metric: true, 
-    metric_type: 'top5'
+    img: shuffledImages[3],
+    prompt: "That looks like some cool websites",
+    metric: false,
+    metric_type: null
   },
   {
     id: 'slide5',
-    img: '/assets/images/14.png', 
+    img: shuffledImages[4],
+    prompt: "That looks like some cool websites",
+    metric: false,
+    metric_type: null
+  },
+  {
+    id: 'slide6',
+    img: shuffledImages[5],
+    prompt: "That looks like some cool websites",
+    metric: false,
+    metric_type: null
+  },
+  {
+    id: 'slide7',
+    img: shuffledImages[6],
+    prompt: "That looks like some cool websites",
+    metric: false,
+    metric_type: null
+  },
+  {
+    id: 'slide8',
+    img: shuffledImages[7],
+    prompt: "That looks like some cool websites",
+    metric: false,
+    metric_type: null
+  },
+  {
+    id: 'slide9',
+    img: shuffledImages[8],
     prompt: "That looks like some cool websites",
     metric: false,
     metric_type: null

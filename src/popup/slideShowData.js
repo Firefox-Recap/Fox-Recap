@@ -3,11 +3,23 @@ import promptsData from './prompts.json';
 
 // Helper to get a random intro prompt from your prompts JSON
 const getRandomIntroPrompt = (timeRange) => {
-  console.log(timeRange);
   const introPrompts = promptsData.prompts.introRecap;
   const randomIndex = Math.floor(Math.random() * introPrompts.length);
   let prompt = introPrompts[randomIndex].text;
   return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
+};
+
+export const getTopVisitedPrompt = (topDomains) => {
+  if (!topDomains || topDomains.length < 3) {
+    return "Top sites data is not available.";
+  }
+  const topWebsitePrompts = promptsData.prompts.top3Websites;
+  const randomIndex = Math.floor(Math.random() * topWebsitePrompts.length);
+  let prompt = topWebsitePrompts[randomIndex].text;
+  prompt = prompt.replace('[Website 1]', topDomains[0].domain);
+  prompt = prompt.replace('[Website 2]', topDomains[1].domain);
+  prompt = prompt.replace('[Website 3]', topDomains[2].domain);
+  return prompt;
 };
 
 
@@ -47,7 +59,7 @@ const shuffle = (array) => {
 // Shuffle the background images (make a copy to avoid mutating the original array)
 const shuffledVideos = shuffle([...backgroundVideos]);
 
-export const getData = (timeRange) => [
+export const getData = (timeRange, topDomains) => [
   {
     id: 'slide1',
     video: shuffledVideos[0],
@@ -65,9 +77,9 @@ export const getData = (timeRange) => [
   {
     id: 'slide3',
     video: shuffledVideos[2],
-    prompt: null,
+    prompt: getTopVisitedPrompt(topDomains),
     metric: true,
-    metric_type: 'total_websites_visited'
+    metric_type: null
   },
   {
     id: 'slide4',

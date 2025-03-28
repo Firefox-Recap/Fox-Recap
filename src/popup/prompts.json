@@ -26,6 +26,24 @@
         "text": "Peek into your past pages—here's your browser history for [x]."
       }
     ],
+    "top3Websites":[
+      {
+        "id" : "topThree1",
+        "text": "Today's top sites were [Website 1], [Website 2], [Website 3]. What were you searching for? 🏆💻"
+      },
+      {
+        "id" : "topThree2",
+        "text": "Your web hotspots today were [Website 1], [Website 2], and [Website 3]. What a lineup! 🌟📈"
+      },
+      {
+        "id" : "topThree3",
+        "text": "Today’s digital tour took you to [Website 1], [Website 2], and [Website 3]—centers of your online universe! 🌍💫"
+      },
+      {
+        "id" : "topThree4",
+        "text": "Leading your browser leaderboard today: [Website 1], [Website 2], [Website 3]. Spotlight on your top sites! 🏆🔦"
+      }
+    ],
       "genericCategorical": [
         {
           "id": "genCat1",

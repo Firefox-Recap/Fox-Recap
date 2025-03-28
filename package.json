@@ -7,7 +7,7 @@
   "scripts": {
     "lint": "eslint . --config eslint.config.mjs",
     "test": "echo \"No test specified\" && exit 0",
-    "build": "webpack --config webpack.config.js"
+    "build": "webpack --mode production"
   },
   "keywords": [
     "firefox-extension",
@@ -19,23 +19,32 @@
   "license": "ISC",
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
+    "apexcharts": "^4.5.0",
+    "chart.js": "^4.4.8",
     "crypto-browserify": "^3.12.1",
     "idb": "^8.0.2",
     "path-browserify": "^1.0.1",
-    "sql.js": "1.6.2",
-    "tldts": "^6.1.85"
+    "tldts": "^6.1.85",
+    "react": "^19.0.0",
+    "react-apexcharts": "^1.7.0",
+    "react-chartjs-2": "^5.3.0",
+    "react-dom": "^19.0.0",
+    "sql.js": "1.6.2"
   },
   "devDependencies": {
     "@babel/core": "^7.26.9",
     "@babel/preset-env": "^7.26.9",
+    "@babel/preset-react": "^7.26.3",
     "@eslint/js": "^9.21.0",
     "babel-loader": "^10.0.0",
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^13.0.0",
+    "css-loader": "^7.1.2",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.27.5",
     "globals": "^16.0.0",
+    "style-loader": "^4.0.0",
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1"
   }

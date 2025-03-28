@@ -26,6 +26,58 @@
         "text": "Peek into your past pages—here's your browser history for [x]."
       }
     ],
+    "introToTotalWebsites": [
+      {
+        "id": "introTotal1",
+        "text": "Let’s take a look at how many websites you've visited."
+      },
+      {
+        "id": "introTotal2",
+        "text": "Let's see how many digital stops you've made—here's the count of websites you've visited."
+      },
+      {
+        "id": "introTotal3",
+        "text": "Curious about your web footprint? Here's the total number of websites you've visited."
+      },
+      {
+        "id": "introTotal4",
+        "text": "Let's uncover the extent of your web explorations—how many sites have you visited?"
+      },
+      {
+        "id": "introTotal5",
+        "text": "Diving into your digital journey, let's count how many websites caught your attention."
+      },
+      {
+        "id": "introTotal6",
+        "text": "Time to tally up! Here's how many different websites you've explored."
+      },
+      {
+        "id": "introTotal7",
+        "text": "Let’s map out your online adventure—how many websites have you visited?"
+      }
+    ],
+    "totalWebsites": [
+      {
+        "id": "totalSites1",
+        "text": "You've visited [X] unique websites today—explorer of the digital universe! 🌌🚀"
+      },
+      {
+        "id": "totalSites2",
+        "text": "You clicked [X] URLs this [d,w,m]—curious, unstoppable, and maybe just a little too online. 🌐👀"
+      },
+      {
+        "id": "totalSites3",
+        "text": "You navigated through [X] unique websites this [day, week, month]—a true net navigator! 🧭🌐"
+      },
+      {
+        "id": "totalSites4",
+        "text": "You launched [X] website visits this [day, week, month]—digital explorer status: Expert! 🚀🌟"
+      },
+      {
+        "id": "totalSites5",
+        "text": "Your browser saw [X] sites this [day, week, month]—you're surfing the web waves! 🏄‍♀️🌊"
+      }
+    ],
     "top3Websites":[
       {
         "id" : "topThree1",

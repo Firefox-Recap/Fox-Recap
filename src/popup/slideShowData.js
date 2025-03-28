@@ -2,12 +2,13 @@
 import promptsData from './prompts.json';
 
 // Helper to get a random intro prompt from your prompts JSON
-const getRandomIntroPrompt = (timeRange) => {
-  const introPrompts = promptsData.prompts.introRecap;
-  const randomIndex = Math.floor(Math.random() * introPrompts.length);
-  let prompt = introPrompts[randomIndex].text;
+const getRandomPrompt = (timeRange, promptType) => {
+  const prompts = promptsData.prompts[promptType];
+  const randomIndex = Math.floor(Math.random() * prompts.length);
+  let prompt = prompts[randomIndex].text;
   return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
 };
+
 
 export const getTopVisitedPrompt = (topDomains) => {
   if (!topDomains || topDomains.length < 3) {
@@ -63,28 +64,27 @@ export const getData = (timeRange, topDomains) => [
   {
     id: 'slide1',
     video: shuffledVideos[0],
-    prompt: getRandomIntroPrompt(timeRange), // Randomly selected prompt from introRecap
+    prompt: getRandomPrompt(timeRange, 'introRecap'), 
     metric: false,
     metric_type: null
   },
   {
     id: 'slide2',
     video: shuffledVideos[1],
-    prompt: 'Lets take a look of how many websites youve visited',
-    metric: false,
+    prompt: getRandomPrompt(timeRange, 'introToTotalWebsites'),
     metric_type: null
   },
   {
     id: 'slide3',
     video: shuffledVideos[2],
-    prompt: getTopVisitedPrompt(topDomains),
+    prompt: "You've visited [X] unique websites today—explorer of the digital universe! 🌌🚀",
     metric: true,
     metric_type: null
   },
   {
     id: 'slide4',
     video: shuffledVideos[3],
-    prompt: "That looks like some cool websites",
+    prompt:  getTopVisitedPrompt(topDomains),
     metric: false,
     metric_type: null
   },

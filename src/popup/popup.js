@@ -26,23 +26,53 @@ function createTopVisitedSection(domains) {
   return container;
 }
 
+function createCategoryTimeSection(categoryStats) {
+  const container = document.createElement("div");
+  container.className = "category-time-container";
+  container.innerHTML = `<h3>🕒 Time Spent by Category</h3>`;
+
+  const list = document.createElement("ul");
+  list.className = "category-time-list";
+
+  for (const { category, durationMs, percentage } of categoryStats) {
+    const item = document.createElement("li");
+    item.textContent = `${category} — ${formatDuration(durationMs)} (${percentage}%)`;
+    list.appendChild(item);
+  }
+
+  container.appendChild(list);
+  return container;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   try {
-    const { success, data } = await browser.runtime.sendMessage({
+    // Top Domains
+    const topResponse = await browser.runtime.sendMessage({
       action: "GET_TOP_VISITED_DOMAINS",
       limit: 10,
     });
 
-    if (success && Array.isArray(data)) {
-      console.log("✅ Top Domains (with duration):", data);
-      const section = createTopVisitedSection(data);
+    if (topResponse.success && Array.isArray(topResponse.data)) {
+      console.log("✅ Top Domains (with duration):", topResponse.data);
+      const section = createTopVisitedSection(topResponse.data);
       document.body.appendChild(section);
     } else {
       console.warn("⚠️ No top visited domain data found.");
     }
+
+    // Category Time Breakdown
+    const catResponse = await browser.runtime.sendMessage({
+      action: "GET_TIME_SPENT_BY_CATEGORY",
+    });
+
+    if (catResponse.success && Array.isArray(catResponse.data)) {
+      console.log("✅ Time Spent by Category:", catResponse.data);
+      const section = createCategoryTimeSection(catResponse.data);
+      document.body.appendChild(section);
+    } else {
+      console.warn("⚠️ No category time data found.");
+    }
   } catch (err) {
-    console.error("❌ Failed to fetch top visited domains:", err);
+    console.error("❌ Failed to render popup stats:", err);
   }
 });
-
-

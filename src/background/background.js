@@ -591,7 +591,7 @@ export async function updateCSVStorage() {
 /* --------------------------------------------------
    11) USER LABELS / MESSAGES
 ----------------------------------------------------*/
-browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+browser.runtime.onMessage.addListener(async(msg, sender, sendResponse) => {
   console.log("📩 [Background] Message received:", msg); // 🔥 Top-level debug log
 
   // --- User Label Set ---
@@ -673,6 +673,95 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     return true;
   }
+
+  else if (msg.action === "GET_ALL_VISITS") {
+    try {
+      const db = await initDB();
+      const visits = await db.getAll("visits");
+  
+      sendResponse({ success: true, data: visits });
+    } catch (err) {
+      console.error("❌ Error retrieving visits from IndexedDB:", err);
+      sendResponse({ success: false, error: err.message });
+    }
+    return true; // Keep message channel open
+  }
+
+  else if (msg.action === "GET_PEAK_HOURS") {
+    console.log("📊 [Background] Calculating peak browsing hours...");
+  
+    try {
+      const db = await initDB();
+      const visits = await db.getAll("visitDurations");
+  
+      const hourTotals = Array(24).fill(0); // index = hour (0-23)
+  
+      for (const { timestamp, duration } of visits) {
+        const date = new Date(timestamp);
+        const hour = date.getHours();
+        hourTotals[hour] += duration;
+      }
+  
+      const formatted = hourTotals.map((ms, hour) => ({
+        hour,
+        duration: ms,
+        label: `${hour}:00`,
+      }));
+  
+      console.log("✅ Peak Hours Data:", formatted);
+      sendResponse({ success: true, data: formatted });
+    } catch (err) {
+      console.error("❌ Error calculating peak hours:", err);
+      sendResponse({ success: false, error: err.message });
+    }
+  
+    return true;
+  }
+  
+  
+
+  else if (msg.action === "GET_CATEGORY_DURATIONS") {
+    console.log("📊 [Background] Fetching category durations...");
+  
+    try {
+      const db = await initDB();
+      const visits = await db.getAll("visitDurations");
+  
+      // Fetch classification cache so we can map domain → category
+      const classified = await db.getAll("classifications"); // assuming cacheClassification writes here
+      const domainToCategory = {};
+      for (const entry of classified) {
+        const parsedDomain = getDomainFromURL(entry.title);
+        if (parsedDomain && entry.category) {
+          domainToCategory[parsedDomain] = entry.category;
+        }
+      }
+  
+      // Aggregate total time by category
+      const timeByCategory = {};
+      for (const { domain, duration } of visits) {
+        const category = domainToCategory[domain] || "Uncategorized";
+        timeByCategory[category] = (timeByCategory[category] || 0) + duration;
+      }
+  
+      // Turn into percentage breakdown
+      const totalDuration = Object.values(timeByCategory).reduce((a, b) => a + b, 0);
+      const results = Object.entries(timeByCategory).map(([category, duration]) => ({
+        category,
+        duration,
+        percent: totalDuration ? ((duration / totalDuration) * 100).toFixed(2) : "0.00",
+      }));
+  
+      console.log("✅ Category Durations:", results);
+      sendResponse({ success: true, data: results });
+    } catch (err) {
+      console.error("❌ Error fetching category durations:", err);
+      sendResponse({ success: false, error: err.message });
+    }
+  
+    return true;
+  }
+  
 
   // --- Unknown Message ---
   else {
@@ -776,3 +865,280 @@ window.updateCategory = async function (domain, newCategory) {
  * so they're available to other modules.
  */
 export { classifyWithAI };
+
+/**
+ * 🧪 Manual Console Debug Commands (For Developer Use)
+ * These give live visibility into IndexedDB, durations, and history tracking.
+ *
+ * - window.logVisitDurations() → shows domain-level time spent
+ * - window.logCategoryDurations() → shows time per category (% breakdown)
+ * - window.logTopDomains(sortBy?) → shows top domains (by visits or duration)
+ * - window.logAllVisits() → shows all raw visits with timestamp + titles
+ *
+ * Example:
+ *   window.logTopDomains("visits");
+ *   window.logTopDomains("duration");
+ */
+
+
+/**
+ * ⏱️ Manually log visit durations in readable format
+ * Usage: window.logVisitDurations()
+ */
+window.logVisitDurations = async () => {
+  const { getVisitDurations } = await import("../storage/indexedDB.js");
+  const durations = await getVisitDurations();
+
+  const domainTotals = {};
+
+  for (const { domain, duration } of durations) {
+    domainTotals[domain] = (domainTotals[domain] || 0) + duration;
+  }
+
+  const formatDuration = (ms) => {
+    const seconds = ms / 1000;
+    if (seconds < 60) return `${seconds.toFixed(1)} sec`;
+    if (seconds < 3600) return `${(seconds / 60).toFixed(1)} min`;
+    return `${(seconds / 3600).toFixed(2)} hr`;
+  };
+
+  console.log("⏱️ Visit Durations:");
+  for (const [domain, totalMs] of Object.entries(domainTotals)) {
+    console.log(`  • ${domain}: ${formatDuration(totalMs)} (${totalMs} ms)`);
+  }
+};
+
+window.logCategoryDurations = async () => {
+  const db = await initDB();
+  const visits = await db.getAll("visitDurations");
+  const classifications = await db.getAll("classifications");
+
+  const domainToCategory = {};
+  for (const entry of classifications) {
+    try {
+      const parsed = new URL("https://" + entry.title); // fallback-safe
+      const domain = parsed.hostname.replace(/^www\./, "");
+      if (domain && entry.category) {
+        domainToCategory[domain] = entry.category;
+      }
+    } catch {
+      // skip invalid
+    }
+  }
+
+  const categoryDurations = {};
+  for (const { domain, duration } of visits) {
+    if (!domain || typeof duration !== "number") continue;
+    const category = domainToCategory[domain] || "Uncategorized";
+    categoryDurations[category] = (categoryDurations[category] || 0) + duration;
+  }
+
+  const total = Object.values(categoryDurations).reduce((a, b) => a + b, 0);
+  console.log("📊 Time by Category:");
+  for (const [cat, dur] of Object.entries(categoryDurations)) {
+    const minutes = dur / 60000;
+    const percent = ((dur / total) * 100).toFixed(1);
+    const formatted =
+      minutes >= 60
+        ? `${(minutes / 60).toFixed(1)} hr`
+        : minutes >= 1
+        ? `${minutes.toFixed(1)} min`
+        : `${(dur / 1000).toFixed(1)} sec`;
+    console.log(`  ${cat}: ${formatted} (${percent}%)`);
+  }
+};
+
+window.logTopDomains = async (sortBy = "duration") => {
+  const { getAllVisits, getVisitDurations } = await import("../storage/indexedDB.js");
+  const { parse } = await import("tldts");
+
+  const visits = await getAllVisits();
+  const durations = await getVisitDurations();
+
+  const stats = {};
+
+  for (const v of visits) {
+    const domain = parse(v.url)?.domain;
+    if (!domain) continue;
+    stats[domain] = stats[domain] || { visits: 0, duration: 0 };
+    stats[domain].visits += 1;
+  }
+
+  for (const d of durations) {
+    if (stats[d.domain]) stats[d.domain].duration += d.duration;
+  }
+
+  const sorted = Object.entries(stats)
+    .sort((a, b) =>
+      sortBy === "visits"
+        ? b[1].visits - a[1].visits
+        : b[1].duration - a[1].duration
+    )
+    .slice(0, 10);
+
+  console.log(`📊 Top Domains by ${sortBy}:`);
+  for (const [domain, { visits, duration }] of sorted) {
+    const label =
+      duration >= 3600000
+        ? `${(duration / 3600000).toFixed(1)} hr`
+        : duration >= 60000
+        ? `${(duration / 60000).toFixed(1)} min`
+        : `${(duration / 1000).toFixed(1)} sec`;
+    console.log(`  ${domain}: ${visits} visits, ${label}`);
+  }
+};
+
+/**
+ * 📄 Manually log all visit entries (raw data from IndexedDB)
+ * Usage: window.logAllVisits()
+ */
+window.logAllVisits = async () => {
+  const db = await initDB();
+  const visits = await db.getAll("visits");
+
+  if (!visits.length) {
+    console.log("📄 No visit records found.");
+    return;
+  }
+
+  console.log("📄 All Visit Entries:");
+  for (const { domain, timestamp, url, title, category } of visits) {
+    const date = new Date(timestamp).toLocaleString();
+    console.log(`• [${date}] ${domain} → ${title} (${category})`);
+    console.log(`   ↳ ${url}`);
+  }
+};
+
+/**
+ * 📈 Log peak hour activity in the console (direct DB query version)
+ * Usage: window.logPeakHours()
+ */
+window.logPeakHours = async () => {
+  const db = await initDB();
+  const visits = await db.getAll("visitDurations");
+
+  const hourTotals = Array(24).fill(0); // index = hour (0-23)
+
+  for (const { timestamp, duration } of visits) {
+    const date = new Date(timestamp);
+    const hour = date.getHours();
+    hourTotals[hour] += duration;
+  }
+
+  console.log("📈 Peak Browsing Hours:");
+  for (let hour = 0; hour < 24; hour++) {
+    const ms = hourTotals[hour];
+    const label = ms >= 3600000
+      ? `${(ms / 3600000).toFixed(1)} hr`
+      : ms >= 60000
+      ? `${(ms / 60000).toFixed(1)} min`
+      : `${(ms / 1000).toFixed(1)} sec`;
+    console.log(`  ${hour}:00 — ${label}`);
+  }
+};
+
+/**
+ * 📆 Log time spent browsing by day of the week
+ * Usage: window.logPeakDays()
+ */
+window.logPeakDays = async () => {
+  const db = await initDB();
+  const visits = await db.getAll("visitDurations");
+
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const totalsByDay = Array(7).fill(0); // 0 = Sunday, 6 = Saturday
+
+  for (const { timestamp, duration } of visits) {
+    const date = new Date(timestamp);
+    const dayIndex = date.getDay();
+    totalsByDay[dayIndex] += duration;
+  }
+
+  const formatDuration = (ms) => {
+    const seconds = ms / 1000;
+    if (seconds < 60) return `${seconds.toFixed(1)} sec`;
+    if (seconds < 3600) return `${(seconds / 60).toFixed(1)} min`;
+    return `${(seconds / 3600).toFixed(2)} hr`;
+  };
+
+  console.log("📆 Peak Browsing Days:");
+  for (let i = 0; i < 7; i++) {
+    console.log(`  ${daysOfWeek[i]} — ${formatDuration(totalsByDay[i])}`);
+  }
+};
+
+/**
+ * 📊 Log peak browsing days with category breakdowns
+ * Usage: window.logPeakDaysByCategory()
+ */
+window.logPeakDaysByCategory = async () => {
+  const db = await initDB();
+  const visits = await db.getAll("visitDurations");
+  const classifications = await db.getAll("classifications");
+
+  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const totals = Array(7).fill(null).map(() => ({ total: 0, categories: {}, domainsByCategory: {} }));
+
+  const domainToCategory = {};
+
+  for (const entry of classifications) {
+    try {
+      let domain;
+      if (entry.domain) {
+        domain = entry.domain.replace(/^www\./, "");
+      } else if (entry.url) {
+        domain = new URL(entry.url).hostname.replace(/^www\./, "");
+      } else if (entry.title && entry.title.includes(".")) {
+        // fallback: treat title as domain if no domain/url fields exist
+        domain = entry.title.toLowerCase().replace(/^www\./, "").split(" ")[0];
+      }
+
+      if (domain && entry.category) {
+        domainToCategory[domain] = entry.category;
+      }
+    } catch (e) {
+      console.warn("⚠️ Failed to extract domain from classification entry:", e);
+    }
+  }
+
+  for (const { timestamp, domain, duration } of visits) {
+    if (!domain || typeof duration !== "number") continue;
+
+    const dayIndex = new Date(timestamp).getDay();
+    const category = domainToCategory[domain] || "Uncategorized";
+
+    totals[dayIndex].total += duration;
+    totals[dayIndex].categories[category] = (totals[dayIndex].categories[category] || 0) + duration;
+
+    if (!totals[dayIndex].domainsByCategory[category]) {
+      totals[dayIndex].domainsByCategory[category] = new Set();
+    }
+    totals[dayIndex].domainsByCategory[category].add(domain);
+  }
+
+  const formatMs = (ms) => {
+    const min = ms / 60000;
+    return min >= 1 ? `${min.toFixed(1)} min` : `${(ms / 1000).toFixed(1)} sec`;
+  };
+
+  console.log("📊 Peak Day + Category Breakdown:");
+  for (let i = 0; i < 7; i++) {
+    const { total, categories, domainsByCategory } = totals[i];
+    if (total === 0) continue;
+
+    console.log(`\n📅 ${daysOfWeek[i]} — ${formatMs(total)}`);
+
+    const sorted = Object.entries(categories).sort(([, a], [, b]) => b - a);
+
+    for (const [cat, dur] of sorted) {
+      const domainList = Array.from(domainsByCategory[cat]).join(", ");
+      console.log(`  • ${cat}: ${formatMs(dur)} (Domains: ${domainList})`);
+    }
+  }
+};
+
+
+
+
+  
+  

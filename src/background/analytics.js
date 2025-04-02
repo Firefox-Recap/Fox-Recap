@@ -3,16 +3,16 @@ import { shouldBlockDomain } from '../storage/privacyGuard.js';
 import { parse } from 'tldts';
 
 /**
- * 🔥 Return top visited *root* domains from IndexedDB using tldts + clean filtering
+ * 🔥 Return top visited *root* domains with intelligent duration formatting.
+ * Format: "45 sec", "12.5 min", "1h 5m"
  */
 export async function getTopVisitedDomains(limit = 10) {
   const visits = await getAllVisits();
   const durations = await getVisitDurations();
 
-  console.log("✅ Raw durations loaded:", durations); // 🔍 This logs duration entries
-
   const domainStats = {};
 
+  // Count visits per root domain
   for (const visit of Array.isArray(visits) ? visits : []) {
     if (!visit.url) continue;
 
@@ -32,20 +32,45 @@ export async function getTopVisitedDomains(limit = 10) {
     }
   }
 
-  for (const durationEntry of Array.isArray(durations) ? durations : []) {
-    const { domain, duration } = durationEntry || {};
-    if (domainStats[domain]) {
-      domainStats[domain].durationMs += duration || 0;
+  // Add up durations per root domain
+  for (const { domain, duration } of Array.isArray(durations) ? durations : []) {
+    const rootDomain = parse(domain)?.domain;
+    if (!rootDomain || typeof duration !== "number") continue;
+
+    if (!domainStats[rootDomain]) {
+      domainStats[rootDomain] = { visits: 0, durationMs: 0 };
     }
+
+    domainStats[rootDomain].durationMs += duration;
   }
 
-  return Object.entries(domainStats)
-    .sort((a, b) => b[1].visits - a[1].visits) // Change this line to `b[1].durationMs - a[1].durationMs` to sort by time spent instead
-    .slice(0, limit)
-    .map(([domain, stats]) => ({
+  // Format duration for each domain
+  const formatted = Object.entries(domainStats).map(([domain, stats]) => {
+    const { visits, durationMs } = stats;
+    const seconds = Math.floor(durationMs / 1000);
+
+    let durationFormatted = "";
+    if (seconds < 60) {
+      durationFormatted = `${seconds} sec`;
+    } else if (seconds < 3600) {
+      const minutes = (seconds / 60).toFixed(1);
+      durationFormatted = `${minutes} min`;
+    } else {
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      durationFormatted = `${hours}h ${mins}m`;
+    }
+
+    return {
       domain,
-      visits: stats.visits,
-      durationMs: stats.durationMs,
-    }));
+      visits,
+      durationMs,
+      durationFormatted,
+    };
+  });
+
+  // Sort by actual time spent (not just visits)
+  return formatted.sort((a, b) => b.durationMs - a.durationMs).slice(0, limit);
 }
+
 

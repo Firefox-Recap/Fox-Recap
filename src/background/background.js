@@ -279,7 +279,7 @@ export async function classifyWithCache(url, title) {
     return "Other";
   }
 
-  // Skip non-standard URLs (e.g., about:blank, chrome://, service worker URLs)
+  // Skip non-standard URLs
   if (!domain || domain === "about:blank" || domain.startsWith("chrome://") || domain.includes("service_worker")) {
     console.warn(`❗ Skipping entry with non-standard or empty domain. URL: ${url}`);
     return "Other";
@@ -292,30 +292,53 @@ export async function classifyWithCache(url, title) {
   const domainLockCategory = getDomainLock(domain, rootDomain);
   if (domainLockCategory) {
     console.log(`🛑 Domain Lock Applied: ${domain} → ${domainLockCategory}`);
-    await cacheClassification(title, domainLockCategory);
+    // OLD: await cacheClassification(title, domainLockCategory);
+    await cacheClassification({
+      domain,
+      url,
+      title,
+      category: domainLockCategory
+    });
     return domainLockCategory;
   }
 
-  // Inherit classification from root domain if no specific lock exists
+  // Inherit classification from root domain if no specific lock
   if (domain !== rootDomain && DOMAIN_LOCKS[rootDomain]) {
+    const cat = DOMAIN_LOCKS[rootDomain];
     console.log(`🔄 Inheriting classification from root domain: ${rootDomain}`);
-    await cacheClassification(title, DOMAIN_LOCKS[rootDomain]);
-    return DOMAIN_LOCKS[rootDomain];
+    await cacheClassification({
+      domain,
+      url,
+      title,
+      category: cat
+    });
+    return cat;
   }
 
-  // 2) CHECK FINAL BATCH CLASSIFICATIONS (via StorageManager)
+  // 2) CHECK FINAL BATCH CLASSIFICATIONS
   const allFinalBatches = await getAllFinalBatches();
   if (allFinalBatches[rootDomain]) {
-    console.log(`🛑 Batch Lock Applied: ${rootDomain} → ${allFinalBatches[rootDomain]}`);
-    await cacheClassification(title, allFinalBatches[rootDomain]);
-    return allFinalBatches[rootDomain];
+    const cat = allFinalBatches[rootDomain];
+    console.log(`🛑 Batch Lock Applied: ${rootDomain} → ${cat}`);
+    await cacheClassification({
+      domain,
+      url,
+      title,
+      category: cat
+    });
+    return cat;
   }
 
   // 3) CHECK USER-LABELED CATEGORIES (SQLite)
   const userCategory = getUserLabel(rootDomain);
   if (userCategory && userCategory !== "Unknown") {
     console.log(`👤 Using stored user-labeled category for ${rootDomain}: ${userCategory}`);
-    await cacheClassification(title, userCategory);
+    await cacheClassification({
+      domain,
+      url,
+      title,
+      category: userCategory
+    });
     return userCategory;
   }
 
@@ -323,11 +346,16 @@ export async function classifyWithCache(url, title) {
   const ruleCategory = ruleBasedCategory(domain);
   if (ruleCategory && ruleCategory !== "Other") {
     console.log(`⚡ Rule-based classification: ${domain} -> ${ruleCategory}`);
-    await cacheClassification(title, ruleCategory);
+    await cacheClassification({
+      domain,
+      url,
+      title,
+      category: ruleCategory
+    });
     return ruleCategory;
   }
 
-  // 5) RETRIEVE CACHED CLASSIFICATIONS (IndexedDB)
+  // 5) RETRIEVE CACHED CLASSIFICATIONS
   const textForClassification = `${title} (Domain: ${domain})`;
   const cachedCategory = await getCachedClassification(rootDomain, title);
   if (cachedCategory) {
@@ -348,22 +376,28 @@ export async function classifyWithCache(url, title) {
     console.error("❌ Error during embedding generation or matching:", error);
   }
 
-  // 7) AI FALLBACK (Only if no other classification exists)
+  // 7) AI FALLBACK
   console.log(`🤖 AI Fallback Triggered for: ${title}`);
-  const zeroShotCategory = await classifyWithAI(domain, title);
-  console.log(`🤖 AI Classified: "${title}" -> ${zeroShotCategory}`);
-
-  // 8) FINAL CATEGORY + Cache
-  const finalCategory = zeroShotCategory && CATEGORY_OPTIONS.includes(zeroShotCategory)
+  const zeroShotCategory = await classifyPage(textForClassification);
+  const finalCategory = (zeroShotCategory && CATEGORY_OPTIONS.includes(zeroShotCategory))
     ? zeroShotCategory
     : "Other";
 
   if (embedding) {
     await cacheEmbedding(textForClassification, embedding, finalCategory);
   }
-  await cacheClassification(title, finalCategory);
+
+  // OLD: await cacheClassification(title, finalCategory);
+  await cacheClassification({
+    domain,
+    url,
+    title,
+    category: finalCategory
+  });
+
   return finalCategory;
 }
+
 
 /* --------------------------------------------------
    5) BATCH CLASSIFICATION
@@ -446,11 +480,16 @@ async function saveHistory(url, title, category) {
     console.log(`🔄 Skipping duplicate: ${normalizedDomain}`);
     return;
   }
-
   recentUrls.add(normalizedDomain);
   setTimeout(() => recentUrls.delete(normalizedDomain), DUPLICATE_TIMEOUT_MS);
 
-  await cacheClassification(title, category);
+  // OLD: await cacheClassification(title, category);
+  await cacheClassification({
+    domain: normalizedDomain,
+    url: normalizedUrl,
+    title,
+    category
+  });
 
   try {
     const stmt = db.prepare(`
@@ -473,6 +512,7 @@ async function saveHistory(url, title, category) {
     console.error("❌ Error saving history:", err);
   }
 
+  // Save to `visits` store
   try {
     const visitDB = await initDB();
     const tx = visitDB.transaction("visits", "readwrite");
@@ -489,6 +529,7 @@ async function saveHistory(url, title, category) {
     console.error("❌ Error writing to visits store:", e);
   }
 
+  // CSV
   try {
     if (normalizedDomain && category) {
       await updateStoredCSV(normalizedDomain, title, category);
@@ -500,6 +541,7 @@ async function saveHistory(url, title, category) {
     await updateStoredCSV(normalizedUrl, title, category);
   }
 }
+
 
 
 
@@ -566,6 +608,9 @@ function attachEventListeners() {
   attachEventListeners();
   await dbInMemoryReady;
   console.log("✅ Background script fully ready!");
+
+  // ✅ Expose readiness flag for popup to detect
+  window.isHistofyBackgroundReady = true;
 })();
 
 
@@ -591,8 +636,11 @@ export async function updateCSVStorage() {
 /* --------------------------------------------------
    11) USER LABELS / MESSAGES
 ----------------------------------------------------*/
-browser.runtime.onMessage.addListener(async(msg, sender, sendResponse) => {
-  console.log("📩 [Background] Message received:", msg); // 🔥 Top-level debug log
+//---------------------------------------------------
+// Replace your entire onMessage block with this:
+//---------------------------------------------------
+browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  console.log("[Background] Message received:", msg);
 
   // --- User Label Set ---
   if (msg.action === "setUserLabel") {
@@ -617,13 +665,12 @@ browser.runtime.onMessage.addListener(async(msg, sender, sendResponse) => {
       }
     })();
 
-    return true; // Keep channel open
+    return true; // keeps the channel open
   }
 
   // --- CSV Request ---
   else if (msg.action === "getCSV") {
     console.log("📁 [Background] Fetching stored CSV...");
-
     (async () => {
       try {
         const csvData = await getStoredCSV();
@@ -634,14 +681,12 @@ browser.runtime.onMessage.addListener(async(msg, sender, sendResponse) => {
         sendResponse({ csvData: null });
       }
     })();
-
-    return true; // Keep channel open
+    return true;
   }
 
   // --- Run Batch Classification ---
   else if (msg.action === "runBatchClassification") {
     console.log("🚀 [Background] Starting Batch Classification...");
-
     (async () => {
       try {
         const module = await import("./batchClassification.js");
@@ -653,121 +698,138 @@ browser.runtime.onMessage.addListener(async(msg, sender, sendResponse) => {
         sendResponse({ success: false, error: err.message });
       }
     })();
-
     return true;
   }
 
-  // --- Get Top Visited Domains ---
+  // --- GET_TOP_VISITED_DOMAINS (FIXED!) ---
   else if (msg.action === "GET_TOP_VISITED_DOMAINS") {
     console.log("📊 [Background] Received GET_TOP_VISITED_DOMAINS request");
 
+    // Don't use `async` on the listener; just return true below.
     getTopVisitedDomains(msg.limit || 10)
       .then((data) => {
-        console.log("📊 [Background] Top domains:", data);
-        sendResponse({ success: true, data });
+        console.log("📊 [Background] Top domains (MOCK):", data);
+        sendResponse({ success: true, data }); // <— The object your popup expects
       })
       .catch((err) => {
         console.error("❌ [Background] Error in getTopVisitedDomains:", err);
         sendResponse({ success: false, error: err.message });
       });
 
+    return true; // <-- Keeps message port open for the async .then() above
+  }
+
+  // --- GET_ALL_VISITS ---
+  else if (msg.action === "GET_ALL_VISITS") {
+    (async () => {
+      try {
+        const db = await initDB();
+        const visits = await db.getAll("visits");
+        sendResponse({ success: true, data: visits });
+      } catch (err) {
+        console.error("❌ Error retrieving visits:", err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
     return true;
   }
 
-  else if (msg.action === "GET_ALL_VISITS") {
-    try {
-      const db = await initDB();
-      const visits = await db.getAll("visits");
-  
-      sendResponse({ success: true, data: visits });
-    } catch (err) {
-      console.error("❌ Error retrieving visits from IndexedDB:", err);
-      sendResponse({ success: false, error: err.message });
-    }
-    return true; // Keep message channel open
+  // --- GET_VISIT_DURATIONS ---
+  else if (msg.action === "GET_VISIT_DURATIONS") {
+    (async () => {
+      try {
+        const db = await initDB();
+        const durations = await db.getAll("visitDurations");
+        sendResponse({ success: true, data: durations });
+      } catch (err) {
+        console.error("❌ Error retrieving visit durations:", err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    return true;
   }
 
+  // --- GET_PEAK_HOURS ---
   else if (msg.action === "GET_PEAK_HOURS") {
     console.log("📊 [Background] Calculating peak browsing hours...");
-  
-    try {
-      const db = await initDB();
-      const visits = await db.getAll("visitDurations");
-  
-      const hourTotals = Array(24).fill(0); // index = hour (0-23)
-  
-      for (const { timestamp, duration } of visits) {
-        const date = new Date(timestamp);
-        const hour = date.getHours();
-        hourTotals[hour] += duration;
+    (async () => {
+      try {
+        const db = await initDB();
+        const visits = await db.getAll("visitDurations");
+        const hourTotals = Array(24).fill(0);
+
+        for (const { timestamp, duration } of visits) {
+          const date = new Date(timestamp);
+          const hour = date.getHours();
+          hourTotals[hour] += duration;
+        }
+
+        const formatted = hourTotals.map((ms, hour) => ({
+          hour,
+          duration: ms,
+          label: `${hour}:00`
+        }));
+
+        console.log("✅ Peak Hours Data:", formatted);
+        sendResponse({ success: true, data: formatted });
+      } catch (err) {
+        console.error("❌ Error calculating peak hours:", err);
+        sendResponse({ success: false, error: err.message });
       }
-  
-      const formatted = hourTotals.map((ms, hour) => ({
-        hour,
-        duration: ms,
-        label: `${hour}:00`,
-      }));
-  
-      console.log("✅ Peak Hours Data:", formatted);
-      sendResponse({ success: true, data: formatted });
-    } catch (err) {
-      console.error("❌ Error calculating peak hours:", err);
-      sendResponse({ success: false, error: err.message });
-    }
-  
+    })();
     return true;
   }
-  
-  
 
+  // --- GET_CATEGORY_DURATIONS ---
   else if (msg.action === "GET_CATEGORY_DURATIONS") {
     console.log("📊 [Background] Fetching category durations...");
-  
-    try {
-      const db = await initDB();
-      const visits = await db.getAll("visitDurations");
-  
-      // Fetch classification cache so we can map domain → category
-      const classified = await db.getAll("classifications"); // assuming cacheClassification writes here
-      const domainToCategory = {};
-      for (const entry of classified) {
-        const parsedDomain = getDomainFromURL(entry.title);
-        if (parsedDomain && entry.category) {
-          domainToCategory[parsedDomain] = entry.category;
+    (async () => {
+      try {
+        const db = await initDB();
+        const visits = await db.getAll("visitDurations");
+        const classified = await db.getAll("classifications");
+
+        const domainToCategory = {};
+        for (const entry of classified) {
+          let parsedDomain = entry.domain;
+          if (!parsedDomain && entry.url) {
+            parsedDomain = new URL(entry.url).hostname;
+          }
+          if (parsedDomain && entry.category) {
+            domainToCategory[parsedDomain] = entry.category;
+          }
         }
+
+        const timeByCategory = {};
+        for (const { domain, duration } of visits) {
+          const cat = domainToCategory[domain] || "Uncategorized";
+          timeByCategory[cat] = (timeByCategory[cat] || 0) + duration;
+        }
+
+        const totalDuration = Object.values(timeByCategory).reduce((a, b) => a + b, 0);
+        const results = Object.entries(timeByCategory).map(([category, dur]) => ({
+          category,
+          duration: dur,
+          percent: totalDuration ? ((dur / totalDuration) * 100).toFixed(2) : "0.00",
+        }));
+
+        console.log("✅ Category Durations:", results);
+        sendResponse({ success: true, data: results });
+      } catch (err) {
+        console.error("❌ Error fetching category durations:", err);
+        sendResponse({ success: false, error: err.message });
       }
-  
-      // Aggregate total time by category
-      const timeByCategory = {};
-      for (const { domain, duration } of visits) {
-        const category = domainToCategory[domain] || "Uncategorized";
-        timeByCategory[category] = (timeByCategory[category] || 0) + duration;
-      }
-  
-      // Turn into percentage breakdown
-      const totalDuration = Object.values(timeByCategory).reduce((a, b) => a + b, 0);
-      const results = Object.entries(timeByCategory).map(([category, duration]) => ({
-        category,
-        duration,
-        percent: totalDuration ? ((duration / totalDuration) * 100).toFixed(2) : "0.00",
-      }));
-  
-      console.log("✅ Category Durations:", results);
-      sendResponse({ success: true, data: results });
-    } catch (err) {
-      console.error("❌ Error fetching category durations:", err);
-      sendResponse({ success: false, error: err.message });
-    }
-  
+    })();
     return true;
   }
-  
 
   // --- Unknown Message ---
   else {
     console.warn("⚠️ [Background] Unrecognized message:", msg);
+    // no response
   }
 });
+
 
 /* --------------------------------------------------
    12) VISIT DURATION TRACKING
@@ -835,6 +897,20 @@ browser.runtime.onSuspend?.addListener(async () => {
     await trackVisitDuration(activeTabInfo.domain, duration);
   }
 });
+
+// Force flush tab duration when popup opens
+browser.runtime.onConnect.addListener((port) => {
+  if (port.name === "popup-init") {
+    const now = Date.now();
+    if (activeTabInfo.domain && activeTabInfo.startTime) {
+      const duration = now - activeTabInfo.startTime;
+      console.log(`📤 Popup trigger: flushing ${activeTabInfo.domain} after ${duration} ms`);
+      trackVisitDuration(activeTabInfo.domain, duration);
+      activeTabInfo.startTime = now; // Reset so we don't double-count
+    }
+  }
+});
+
 
 
 
@@ -1137,6 +1213,18 @@ window.logPeakDaysByCategory = async () => {
   }
 };
 
+
+
+
+// 🔌 Expose a helper so popup can directly access background DB
+window.getBackgroundVisits = async () => {
+  const db = await initDB();
+  return {
+    visits: await db.getAll("visits"),
+    durations: await db.getAll("visitDurations"),
+    classifications: await db.getAll("classifications")
+  };
+};
 
 
 

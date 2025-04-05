@@ -35,6 +35,9 @@ export function shouldBlockDomain(url, title = "") {
     const hostname = parsed.hostname;
     const { domain: rootDomain } = parse(url);
 
+    // 🐛 STEP 2 DEBUG:
+    console.log(`[privacyGuard] Checking domain. URL: ${url}, Hostname: ${hostname}, Root: ${rootDomain}, Title: ${title}`);
+
     if (!rootDomain || !hostname) {
       console.warn("❌ [privacyGuard] Invalid or missing root domain:", url);
       return true;
@@ -47,7 +50,9 @@ export function shouldBlockDomain(url, title = "") {
     }
 
     // ⛔ Root-level ad/tracker domains
-    if (blockedRootDomains.has(rootDomain)) return true;
+    if (blockedRootDomains.has(rootDomain)) {
+      return true;
+    }
 
     // ⚠️ Suspicious domains based on title/font heuristic
     if (

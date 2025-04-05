@@ -7,7 +7,7 @@ import { openDB } from "idb";
 import { parse } from "tldts";
 
 const DB_NAME = "histofyDB";
-const DB_VERSION = 3; // ⬅️ Bump version from 2 → 3
+const DB_VERSION = 3; // ⬅️ Make sure this version is up to date
 
 const CLASSIFICATION_STORE = "classifications";
 const EMBEDDING_STORE = "embeddings";
@@ -18,7 +18,7 @@ const VISIT_STORE = "visits";
  * - classifications
  * - embeddings
  * - visits
- * - visitDurations (NEW)
+ * - visitDurations
  */
 async function initDB() {
   return openDB(DB_NAME, DB_VERSION, {
@@ -30,7 +30,10 @@ async function initDB() {
         db.createObjectStore(EMBEDDING_STORE, { keyPath: "title" });
       }
       if (!db.objectStoreNames.contains(VISIT_STORE)) {
-        db.createObjectStore(VISIT_STORE, { keyPath: "id", autoIncrement: true });
+        db.createObjectStore(VISIT_STORE, {
+          keyPath: "id",
+          autoIncrement: true,
+        });
       }
 
       // ✅ Add new store for visitDurations
@@ -42,6 +45,7 @@ async function initDB() {
         store.createIndex("domain", "domain", { unique: false });
       }
 
+      // Remove old userLabels store if it exists
       if (db.objectStoreNames.contains("userLabels")) {
         db.deleteObjectStore("userLabels");
       }
@@ -61,7 +65,7 @@ export async function getStoredCSV() {
 
   const cleanedCSV = storedCSV.histofyUserCSV
     .split("\n")
-    .filter(line => !line.includes("[User-labeled]"))
+    .filter((line) => !line.includes("[User-labeled]"))
     .join("\n");
 
   return cleanedCSV;
@@ -77,10 +81,11 @@ export async function updateStoredCSV(domain, title, category) {
   const timestamp = new Date().toISOString();
   const newEntry = `${domain},${title},${category},${timestamp}`;
 
+  // Simple duplicate check
   if (!csvContent.includes(`${domain},${title},${category}`)) {
     csvContent += `${newEntry}\n`;
     await browser.storage.local.set({ histofyUserCSV: csvContent });
-    console.log("📁 CSV updated in storage with new batch entry:", newEntry);
+    console.log("📁 CSV updated in storage with new entry:", newEntry);
   } else {
     console.log("🔄 Entry already exists, skipping duplicate:", newEntry);
   }
@@ -88,7 +93,7 @@ export async function updateStoredCSV(domain, title, category) {
 
 export async function getAllVisits() {
   const db = await initDB();
-  const tx = db.transaction(VISIT_STORE, 'readonly');
+  const tx = db.transaction(VISIT_STORE, "readonly");
   const store = tx.objectStore(VISIT_STORE);
   const visits = await store.getAll();
   await tx.done;
@@ -107,23 +112,45 @@ export async function updateIndexedDB(domain, category) {
   }
 }
 
+/**
+ * ✅ Attempt to find existing classification for a domain+title
+ */
 export async function getCachedClassification(domain, title) {
   if (!domain || !title) return null;
   const db = await initDB();
 
+  // 1) Check if there's a record whose key is exactly `title`
   let cachedResult = await db.get(CLASSIFICATION_STORE, title);
-  if (cachedResult) return cachedResult.category;
+  if (cachedResult) {
+    return cachedResult.category;
+  }
 
+  // 2) Check if there's a record whose key is exactly `domain`
   cachedResult = await db.get(CLASSIFICATION_STORE, domain);
-  if (cachedResult) return cachedResult.category;
+  if (cachedResult) {
+    return cachedResult.category;
+  }
 
   return null;
 }
 
-export async function cacheClassification(title, category) {
+/**
+ * ✅ Now takes an object with domain, url, title, category
+ * Stores the record in `classifications` with keyPath = "title".
+ */
+export async function cacheClassification({ domain, url, title, category }) {
   if (!title || !category) return;
   const db = await initDB();
-  await db.put(CLASSIFICATION_STORE, { title, category });
+
+  // We'll store them together, but the `title` is still the "key".
+  // If you prefer a domain-based key, you'd create a store with keyPath: "domain" instead.
+  await db.put(CLASSIFICATION_STORE, {
+    title,
+    domain,
+    url,
+    category,
+    updatedAt: Date.now(),
+  });
 }
 
 export async function cacheEmbedding(title, embedding, category) {
@@ -131,7 +158,9 @@ export async function cacheEmbedding(title, embedding, category) {
   const db = await initDB();
   await db.put(EMBEDDING_STORE, { title, embedding, category });
 
-  const { histofyEmbeddingBackup } = await browser.storage.local.get("histofyEmbeddingBackup");
+  const { histofyEmbeddingBackup } = await browser.storage.local.get(
+    "histofyEmbeddingBackup"
+  );
   const updated = histofyEmbeddingBackup || [];
   updated.push({ title, embedding, category });
   await browser.storage.local.set({ histofyEmbeddingBackup: updated });
@@ -203,7 +232,9 @@ export async function removeAllStaleForDomain(domain) {
  * 🛠 Dev Console Restore: window.recoverEmbeddingsFromBackup()
  */
 window.recoverEmbeddingsFromBackup = async () => {
-  const { histofyEmbeddingBackup } = await browser.storage.local.get("histofyEmbeddingBackup");
+  const { histofyEmbeddingBackup } = await browser.storage.local.get(
+    "histofyEmbeddingBackup"
+  );
   if (!histofyEmbeddingBackup || !Array.isArray(histofyEmbeddingBackup)) {
     console.warn("⚠️ No embedding backup found.");
     return;
@@ -253,10 +284,10 @@ export async function trackVisitDuration(domain, durationMs) {
     const rootDomain = parse(domain)?.domain;
 
     const entry = {
-    domain: rootDomain || domain,
-    duration: durationMs,
-    timestamp: Date.now(),
-  };
+      domain: rootDomain || domain,
+      duration: durationMs,
+      timestamp: Date.now(),
+    };
 
     await store.add(entry);
     await tx.done;
@@ -265,22 +296,21 @@ export async function trackVisitDuration(domain, durationMs) {
     console.error("❌ Error tracking visit duration:", err);
   }
 }
+
 /**
  * ✅ Get raw list of visit durations (no aggregation)
- * Returns: [{ domain: 'hulu.com', duration: 16350 }, ...]
  */
 export async function getVisitDurations() {
-  const db = await initDB(); // Ensure DB is ready
+  const db = await initDB();
   const visits = await db.getAll("visitDurations");
 
   return visits
     .filter((entry) => entry?.domain && typeof entry.duration === "number")
-    .map(({ domain, duration }) => ({
+    .map(({ domain, duration, timestamp }) => ({
       domain,
       duration,
+      timestamp,
     }));
 }
 
-
 export { initDB };
-

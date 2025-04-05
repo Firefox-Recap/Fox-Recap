@@ -1,76 +1,95 @@
-import { getAllVisits, getVisitDurations } from '../storage/indexedDB.js';
-import { shouldBlockDomain } from '../storage/privacyGuard.js';
-import { parse } from 'tldts';
+import { getAllVisits, getVisitDurations } from "../storage/indexedDB.js";
+import { shouldBlockDomain } from "../storage/privacyGuard.js";
+import { parse } from "tldts";
 
 /**
- * 🔥 Return top visited *root* domains with intelligent duration formatting.
- * Format: "45 sec", "12.5 min", "1h 5m"
+ * Fetches the top visited *root* domains, sorted by total time spent,
+ * then by visit count — returning real data from IndexedDB.
  */
 export async function getTopVisitedDomains(limit = 10) {
+  console.log("🔎 Using REAL getTopVisitedDomains now. limit:", limit);
+
+  // 1) Gather visits (pageview events) + durations (time spent)
   const visits = await getAllVisits();
   const durations = await getVisitDurations();
 
   const domainStats = {};
 
-  // Count visits per root domain
+  // 2) Count how many times we visited each root domain
   for (const visit of Array.isArray(visits) ? visits : []) {
     if (!visit.url) continue;
+    if (shouldBlockDomain(visit.url, visit.title)) continue;
 
     try {
-      if (shouldBlockDomain(visit.url, visit.title)) continue;
-
       const rootDomain = parse(visit.url).domain;
       if (!rootDomain) continue;
 
       if (!domainStats[rootDomain]) {
         domainStats[rootDomain] = { visits: 0, durationMs: 0 };
       }
-
       domainStats[rootDomain].visits += 1;
     } catch (err) {
-      console.warn("⚠️ Invalid URL (tldts):", visit.url);
+      console.warn("⚠️ Invalid URL (tldts parse error):", visit.url);
     }
   }
 
-  // Add up durations per root domain
+  // 3) Sum total duration for each root domain
   for (const { domain, duration } of Array.isArray(durations) ? durations : []) {
-    const rootDomain = parse(domain)?.domain;
-    if (!rootDomain || typeof duration !== "number") continue;
+    if (!domain || typeof duration !== "number") continue;
 
-    if (!domainStats[rootDomain]) {
-      domainStats[rootDomain] = { visits: 0, durationMs: 0 };
+    try {
+      // parse as "https://domain" to get a proper root domain
+      const rootDomain = parse("https://" + domain)?.domain;
+      if (!rootDomain) continue;
+
+      if (!domainStats[rootDomain]) {
+        domainStats[rootDomain] = { visits: 0, durationMs: 0 };
+      }
+      domainStats[rootDomain].durationMs += duration;
+    } catch (err) {
+      console.warn("⚠️ Invalid domain in duration parse:", domain);
     }
-
-    domainStats[rootDomain].durationMs += duration;
   }
 
-  // Format duration for each domain
-  const formatted = Object.entries(domainStats).map(([domain, stats]) => {
+  // 4) Convert stats object into an array and format durations
+  const resultArray = Object.entries(domainStats).map(([domain, stats]) => {
     const { visits, durationMs } = stats;
-    const seconds = Math.floor(durationMs / 1000);
-
-    let durationFormatted = "";
-    if (seconds < 60) {
-      durationFormatted = `${seconds} sec`;
-    } else if (seconds < 3600) {
-      const minutes = (seconds / 60).toFixed(1);
-      durationFormatted = `${minutes} min`;
-    } else {
-      const hours = Math.floor(seconds / 3600);
-      const mins = Math.floor((seconds % 3600) / 60);
-      durationFormatted = `${hours}h ${mins}m`;
-    }
-
     return {
       domain,
       visits,
       durationMs,
-      durationFormatted,
+      durationFormatted: formatDuration(durationMs),
     };
   });
 
-  // Sort by actual time spent (not just visits)
-  return formatted.sort((a, b) => b.durationMs - a.durationMs).slice(0, limit);
+  // 5) Sort descending by duration (and optionally by visits)
+  const sorted = resultArray.sort((a, b) => {
+    if (b.durationMs !== a.durationMs) {
+      return b.durationMs - a.durationMs;
+    }
+    return b.visits - a.visits;
+  });
+
+  // 6) Return top N
+  const topN = sorted.slice(0, limit);
+  console.log("✅ [Background] Real top visited domains:", topN);
+  return topN;
 }
 
-
+/**
+ * Helper to produce a readable string for the domain’s total time spent.
+ */
+function formatDuration(ms) {
+  if (ms < 1000) return `${ms} ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds} sec`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    const leftoverSec = seconds % 60;
+    return `${minutes} min ${leftoverSec} sec`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const leftoverMin = minutes % 60;
+  const leftoverSec = seconds % 60;
+  return `${hours}h ${leftoverMin}m ${leftoverSec}s`;
+}

@@ -4,35 +4,60 @@ export const HistofySDK = {
       action: "GET_TOP_VISITED_DOMAINS",
       limit,
     });
-    return response.success ? response.data : [];
+
+    // 🔍 Deep log full response object
+    console.log("📦 Full response from background:", response);
+
+    // Ensure it's a proper object with expected structure
+    if (typeof response === "object" && response?.success && Array.isArray(response.data)) {
+      console.log("🌐 Raw top domains from SDK:", response.data);
+
+      return response.data.map((item) => ({
+        domain: item.domain || item.url || "unknown",
+        visits: item.visits ?? item.count ?? 0,
+        durationMs: item.durationMs ?? item.duration ?? 0,
+        durationFormatted: item.durationFormatted ?? "",
+      }));
+    } else {
+      console.warn("⚠️ Unexpected SDK response type:", typeof response, response);
+    }
+
+    return [];
   },
 
   async getVisitDurations() {
     const response = await browser.runtime.sendMessage({
       action: "GET_VISIT_DURATIONS",
     });
-    return response.success ? response.data : [];
+    return response?.success ? response.data : [];
   },
 
   async getAllVisits() {
     const response = await browser.runtime.sendMessage({
       action: "GET_ALL_VISITS",
     });
-    return response.success ? response.data : [];
+    return response?.success ? response.data : [];
+  },
+
+  async getCategoryDurations() {
+    const response = await browser.runtime.sendMessage({
+      action: "GET_CATEGORY_DURATIONS",
+    });
+    return response?.success ? response.data : [];
   },
 
   async getPeakBrowsingHours() {
     const response = await browser.runtime.sendMessage({
       action: "GET_PEAK_HOURS",
     });
-    return response.success ? response.data : [];
+    return response?.success ? response.data : [];
   },
 
   async getCSVData() {
     const response = await browser.runtime.sendMessage({
       action: "getCSV",
     });
-    return response.csvData || "";
+    return response?.csvData || "";
   },
 
   async setUserLabel(domain, category) {
@@ -41,21 +66,14 @@ export const HistofySDK = {
       domain,
       category,
     });
-    return response.success;
+    return response?.success;
   },
 
   async runBatchClassification() {
     const response = await browser.runtime.sendMessage({
       action: "runBatchClassification",
     });
-    return response.success;
-  },
-
-  async getCategoryDurations() {
-    const response = await browser.runtime.sendMessage({
-      action: "GET_CATEGORY_DURATIONS",
-    });
-    return response.success ? response.data : [];
+    return response?.success;
   },
 
   async getCachedCategory(input) {
@@ -63,20 +81,16 @@ export const HistofySDK = {
       action: "GET_CACHED_CATEGORY",
       input,
     });
-    return response.success ? response.category : null;
+    return response?.success ? response.category : null;
   },
 
   async clearVisitDurations() {
     const response = await browser.runtime.sendMessage({
       action: "CLEAR_VISIT_DURATIONS",
     });
-    return response.success;
+    return response?.success;
   },
 
-  /**
-   * 📆 Structured time spent by day of week (Sunday–Saturday)
-   * @returns {Promise<Array<{ day: string, totalMs: number }>>}
-   */
   async getPeakDays() {
     const visits = await this.getVisitDurations();
     const totals = Array(7).fill(0);
@@ -92,10 +106,6 @@ export const HistofySDK = {
     }));
   },
 
-  /**
-   * 📊 Time spent by day of week with category breakdowns + domains
-   * @returns {Promise<Array<{ day: string, total: number, categories: { [category]: number }, domains: { [category]: string[] } }>>}
-   */
   async getPeakDaysByCategory() {
     const visits = await this.getVisitDurations();
     const classifications = await browser.storage.local.get("classifications").then(res => res.classifications || []);

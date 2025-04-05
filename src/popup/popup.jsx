@@ -3,6 +3,13 @@ import { createRoot } from 'react-dom/client';
 import HomeView from './HomeView';
 import SlideShow from './SlideShow';
 import promptsData from './prompts.json';
+import { HistofySDK } from '../sdk/sdk.js';
+
+// ✅ Expose SDK for DevTools
+if (typeof window !== 'undefined') {
+  window.HistofySDK = HistofySDK;
+  console.log("✅ HistofySDK is now available on window.HistofySDK");
+}
 
 const formatDuration = (ms) => {
   const seconds = Math.floor(ms / 1000) % 60;
@@ -14,29 +21,61 @@ const formatDuration = (ms) => {
 };
 
 const Popup = () => {
-  const [view, setView] = useState('home'); // "home" or "slides"
+  const [view, setView] = useState('home');
   const [timeRange, setTimeRange] = useState(null);
   const [topDomains, setTopDomains] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchTopVisitedDomains = async () => {
-      try {
-        const { success, data } = await browser.runtime.sendMessage({
-          action: "GET_TOP_VISITED_DOMAINS",
-          limit: 10,
-        });
+    // ✅ Trigger background flush
+    if (typeof browser !== "undefined" && browser.runtime?.connect) {
+      browser.runtime.connect({ name: "popup-init" });
+    }
 
-        if (success && Array.isArray(data) && data.length > 0) {
-          setTopDomains(data); // Store the fetched data in state
+    const waitForBackgroundReady = async () => {
+      for (let i = 0; i < 10; i++) {
+        try {
+          const bg = await browser.runtime.getBackgroundPage();
+          if (bg?.isHistofyBackgroundReady) return true;
+        } catch (err) {
+          console.warn("⌛ Waiting for background to be ready...");
+        }
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      return false;
+    };
+
+    const fetchTopVisitedDomains = async () => {
+      const ready = await waitForBackgroundReady();
+      if (!ready) {
+        console.error("❌ Background script not ready after timeout.");
+        return;
+      }
+
+      try {
+        const data = await HistofySDK.getTopVisitedDomains(10);
+        console.log("🧪 Popup received data from SDK:", data);
+
+        if (Array.isArray(data) && data.length > 0) {
+          const hasDomain = data.every(item => typeof item.domain === "string");
+          if (!hasDomain) {
+            console.warn("⚠️ Some topDomains items are missing 'domain' field:", data);
+          }
+          setTopDomains(data);
         } else {
-          console.warn("⚠️ No top visited domain data found.");
+          console.warn("⚠️ No top visited domain data found or data malformed.");
         }
       } catch (err) {
         console.error("❌ Failed to fetch top visited domains:", err);
       }
     };
 
+    // 🔥 TEST BACKGROUND CONNECTION
+    browser.runtime.sendMessage({ action: "GET_TOP_VISITED_DOMAINS" }).then((res) => {
+      console.log("🧪 TOP Domains: ", res);
+    });
+
+    // 🧠 Trigger top domain fetch after ready check
     fetchTopVisitedDomains();
   }, []);
 
@@ -52,25 +91,13 @@ const Popup = () => {
       {view === 'home' ? (
         <HomeView onSelectTimeRange={handleTimeRangeSelect} />
       ) : (
-        <SlideShow 
-          timeRange={timeRange} 
-          setView={setView} 
+        <SlideShow
+          timeRange={timeRange}
+          setView={setView}
           prompts={promptsData.prompts}
-          topDomains={topDomains}  // Pass topDomains to SlideShow component
+          topDomains={topDomains}
         />
       )}
-      {/* {topDomains.length > 0 && (
-        <div className="top-visited-container">
-          <h3>🔥 Top Visited Domains</h3>
-          <ul className="top-visited-list">
-            {topDomains.map((domain, index) => (
-              <li key={index}>
-                {domain.domain} — {domain.visits} visit{domain.visits !== 1 ? 's' : ''} — {formatDuration(domain.durationMs)} spent
-              </li>
-            ))}
-          </ul>
-        </div>
-      )} */}
     </div>
   );
 };

@@ -46,7 +46,7 @@ export const HistofySDK = {
     return response?.success ? response.data : [];
   },
 
-  async getPeakBrowsingHours() {
+  async getPeakHours() {
     const response = await browser.runtime.sendMessage({
       action: "GET_PEAK_HOURS",
     });

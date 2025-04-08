@@ -3,6 +3,7 @@ import { getData } from "./slideShowData";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { HistofySDK } from "../sdk/sdk.js";
 import AnalyticsChartSlide from "./AnalyticsChartSlide.jsx";
+import TopCategoriesChartSlide from "./TopCategoriesChartSlide.jsx"; // ✅ Add this import
 import "./popup.css";
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {
@@ -46,14 +47,12 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
   }, [index]);
 
   useEffect(() => {
-    // If current slide is the chart slide, do NOT auto-advance (so you can see it).
-    if (slides[index]?.metric_type === "peakHours") return;
+    const type = slides[index]?.metric_type;
+    if (type === "peakHours" || type === "topCategoriesChart") return;
 
     const timer = setTimeout(() => {
-      if (index < slides.length - 1) {
-        setIndex(index + 1);
-      }
-    }, 2000); // 2 seconds for other slides
+      if (index < slides.length - 1) setIndex(index + 1);
+    }, 2000);
     return () => clearTimeout(timer);
   }, [index, slides]);
 
@@ -69,104 +68,35 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
   console.log("🔎 Current slide ID:", currentSlide?.id);
   console.log("🔎 Current slide metric_type:", currentSlide?.metric_type);
 
-  // Chart-only slide
+  // 🔥 Special Chart Slide: Peak Hours
   if (currentSlide?.metric_type === "peakHours") {
-    console.log("🔥 Reached peakHours slide => chartData:", currentSlide.chartData);
-
-    return (
-      <div style={{ position: "absolute", inset: 0 }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            position: "absolute",
-            inset: 0,
-          }}
-        >
-          {slides.length > 0 && (
-            <source src={currentSlide.video} type="video/mp4" />
-          )}
-        </video>
-
-        {/* Center the chart */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <AnalyticsChartSlide
-            data={
-              currentSlide.chartData?.length
-                ? currentSlide.chartData
-                : visitDurations
-            }
-          />
-        </div>
-
-        {/* Close Button */}
-        <button
-          onClick={() => setView("home")}
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            fontSize: "40px",
-            border: "none",
-            background: "transparent",
-            color: "#fff",
-            cursor: "pointer",
-            zIndex: 10,
-          }}
-        >
-          x
-        </button>
-
-        {/* Next & Prev Arrows */}
-        <button
-          style={{
-            position: "absolute",
-            right: "10px",
-            top: "45%",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            zIndex: 10,
-          }}
-          onClick={handleNext}
-          disabled={index >= slides.length - 1}
-        >
-          <FaArrowRight size={32} color="#fff" />
-        </button>
-
-        <button
-          style={{
-            position: "absolute",
-            left: "10px",
-            top: "45%",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            zIndex: 10,
-          }}
-          onClick={handlePrevious}
-          disabled={index === 0}
-        >
-          <FaArrowLeft size={32} color="#fff" />
-        </button>
-      </div>
+    return renderChartSlide(
+      currentSlide,
+      <AnalyticsChartSlide
+        data={
+          currentSlide.chartData?.length
+            ? currentSlide.chartData
+            : visitDurations
+        }
+      />
     );
   }
 
-  // Normal slides
+  // 🔥 Special Chart Slide: Top Categories
+  if (currentSlide?.metric_type === "topCategoriesChart") {
+    return renderChartSlide(
+      currentSlide,
+      <TopCategoriesChartSlide
+        data={
+          currentSlide.chartData?.length
+            ? currentSlide.chartData
+            : categoryDurations
+        }
+      />
+    );
+  }
+
+  // 🧠 Default Slide (Prompt only)
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <video
@@ -221,7 +151,6 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
         {currentSlide.prompt}
       </h1>
 
-      {/* Arrows */}
       <button
         style={{
           position: "absolute",
@@ -253,30 +182,92 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
       >
         <FaArrowLeft size={32} color="#fff" />
       </button>
-
-      {/* Debug Info */}
-      <div
-        style={{
-          position: "absolute",
-          bottom: "10px",
-          left: "10px",
-          color: "white",
-          fontSize: "12px",
-          background: "rgba(0,0,0,0.5)",
-          padding: "10px",
-          borderRadius: "8px",
-          zIndex: 10,
-        }}
-      >
-        <div>
-          <strong>Visits:</strong> {visitDurations.length}
-        </div>
-        <div>
-          <strong>Categories:</strong> {categoryDurations.length}
-        </div>
-      </div>
     </div>
   );
+
+  // 🧠 Utility for rendering fullscreen chart slides
+  function renderChartSlide(slide, ChartComponent) {
+    return (
+      <div style={{ position: "absolute", inset: 0 }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            position: "absolute",
+            inset: 0,
+          }}
+        >
+          {slides.length > 0 && <source src={slide.video} type="video/mp4" />}
+        </video>
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {ChartComponent}
+        </div>
+
+        <button
+          onClick={() => setView("home")}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            fontSize: "40px",
+            border: "none",
+            background: "transparent",
+            color: "#fff",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+        >
+          x
+        </button>
+
+        <button
+          style={{
+            position: "absolute",
+            right: "10px",
+            top: "45%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          onClick={handleNext}
+          disabled={index >= slides.length - 1}
+        >
+          <FaArrowRight size={32} color="#fff" />
+        </button>
+
+        <button
+          style={{
+            position: "absolute",
+            left: "10px",
+            top: "45%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          onClick={handlePrevious}
+          disabled={index === 0}
+        >
+          <FaArrowLeft size={32} color="#fff" />
+        </button>
+      </div>
+    );
+  }
 };
 
 export default SlideShow;

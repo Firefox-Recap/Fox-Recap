@@ -20,7 +20,9 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
         const [visits, categories] = await Promise.all([
           HistofySDK.getVisitDurations(),
           HistofySDK.getCategoryDurations(),
+          HistofySDK.getCategoryDurations(),
         ]);
+
 
         setVisitDurations(visits);
         setCategoryDurations(categories);
@@ -39,6 +41,8 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
 
   const handlePrevious = () => setIndex((prev) => prev - 1);
   const handleNext = () => setIndex((prev) => prev + 1);
+  const handlePrevious = () => setIndex((prev) => prev - 1);
+  const handleNext = () => setIndex((prev) => prev + 1);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -55,11 +59,181 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
     }, 2000);
     return () => clearTimeout(timer);
   }, [index, slides]);
+  }, [index, slides]);
 
   if (loading) {
     return (
       <div style={{ color: "white", padding: "2rem" }}>
+      <div style={{ color: "white", padding: "2rem" }}>
         <h2>Loading metrics and slides...</h2>
+      </div>
+    );
+  }
+
+  const currentSlide = slides[index];
+
+  if (currentSlide?.metric_type === "peakHours") {
+    return (
+      <div style={{ position: "absolute", inset: 0 }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            position: "absolute",
+            inset: 0,
+          }}
+        >
+          <source src={currentSlide.video} type="video/mp4" />
+        </video>
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <AnalyticsChartSlide data={currentSlide.chartData?.length ? currentSlide.chartData : visitDurations} />
+        </div>
+
+        <button
+          onClick={() => setView("home")}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            fontSize: "40px",
+            border: "none",
+            background: "transparent",
+            color: "#fff",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+        >
+          x
+        </button>
+
+        <button
+          onClick={handleNext}
+          style={{
+            position: "absolute",
+            right: "10px",
+            top: "45%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          disabled={index >= slides.length - 1}
+        >
+          <FaArrowRight size={32} color="#fff" />
+        </button>
+
+        <button
+          onClick={handlePrevious}
+          style={{
+            position: "absolute",
+            left: "10px",
+            top: "45%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          disabled={index === 0}
+        >
+          <FaArrowLeft size={32} color="#fff" />
+        </button>
+      </div>
+    );
+  }
+
+  if (currentSlide?.metric_type === "topCategories") {
+    return (
+      <div style={{ position: "absolute", inset: 0 }}>
+        <video
+          ref={videoRef}
+          autoPlay
+          loop
+          muted
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            position: "absolute",
+            inset: 0,
+          }}
+        >
+          <source src={currentSlide.video} type="video/mp4" />
+        </video>
+
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <TopCategoriesChartSlide data={categoryDurations} />
+        </div>
+
+        <button
+          onClick={() => setView("home")}
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            fontSize: "40px",
+            border: "none",
+            background: "transparent",
+            color: "#fff",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+        >
+          x
+        </button>
+
+        <button
+          onClick={handleNext}
+          style={{
+            position: "absolute",
+            right: "10px",
+            top: "45%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          disabled={index >= slides.length - 1}
+        >
+          <FaArrowRight size={32} color="#fff" />
+        </button>
+
+        <button
+          onClick={handlePrevious}
+          style={{
+            position: "absolute",
+            left: "10px",
+            top: "45%",
+            background: "transparent",
+            border: "none",
+            cursor: "pointer",
+            zIndex: 10,
+          }}
+          disabled={index === 0}
+        >
+          <FaArrowLeft size={32} color="#fff" />
+        </button>
       </div>
     );
   }
@@ -99,11 +273,19 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
   // 🧠 Default Slide (Prompt only)
   return (
     <div style={{ position: "absolute", inset: 0 }}>
+    <div style={{ position: "absolute", inset: 0 }}>
       <video
         ref={videoRef}
         autoPlay
         loop
         muted
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          position: "absolute",
+          inset: 0,
+        }}
         style={{
           width: "100%",
           height: "100%",
@@ -119,9 +301,18 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
 
       <button
         onClick={() => setView("home")}
+        onClick={() => setView("home")}
         style={{
           position: "absolute",
+          position: "absolute",
           top: "10px",
+          right: "10px",
+          fontSize: "40px",
+          border: "none",
+          background: "transparent",
+          color: "#fff",
+          cursor: "pointer",
+          zIndex: 10,
           right: "10px",
           fontSize: "40px",
           border: "none",
@@ -146,13 +337,28 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
           lineHeight: "1.4",
           fontWeight: 700,
           zIndex: 9,
+          position: "absolute",
+          top: "40%",
+          left: "10%",
+          fontSize: "1.8rem",
+          lineHeight: "1.4",
+          fontWeight: 700,
+          zIndex: 9,
         }}
       >
+        {currentSlide.prompt}
         {currentSlide.prompt}
       </h1>
 
       <button
         style={{
+          position: "absolute",
+          right: "10px",
+          top: "45%",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          zIndex: 10,
           position: "absolute",
           right: "10px",
           top: "45%",
@@ -169,6 +375,13 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
 
       <button
         style={{
+          position: "absolute",
+          left: "10px",
+          top: "45%",
+          background: "transparent",
+          border: "none",
+          cursor: "pointer",
+          zIndex: 10,
           position: "absolute",
           left: "10px",
           top: "45%",

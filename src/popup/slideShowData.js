@@ -114,6 +114,7 @@ export const getTopVisitedPrompt = (topDomains) => {
 export const getData = async (timeRange, topDomains, visits, categories) => {
   const durations = await HistofySDK.getVisitDurations();
   const metrics = await getSlideMetrics(timeRange, visits, durations, categories);
+  const peakHours = await HistofySDK.getPeakHours();
 
   return [
     {
@@ -140,9 +141,7 @@ export const getData = async (timeRange, topDomains, visits, categories) => {
     {
       id: "slide4",
       video: shuffledVideos[3],
-      prompt: `You spent ${(metrics.totalDurationMs / 60000).toFixed(1)} minutes online ${
-        timeRangeMap[timeRange]
-      }. Need a break? 😅`,
+      prompt: `You spent ${(metrics.totalDurationMs / 60000).toFixed(1)} minutes online ${timeRangeMap[timeRange]}. Need a break? 😅`,
       metric: true,
       metric_type: "totalDuration",
     },
@@ -163,31 +162,24 @@ export const getData = async (timeRange, topDomains, visits, categories) => {
     {
       id: "slide7",
       video: shuffledVideos[6],
-      prompt: "That looks like some cool websites",
-      metric: false,
-      metric_type: null
+      prompt: "", // chart-only slide immediately after text
+      metric: true,
+      metric_type: "topCategoriesChart", // ✅ fixed name
     },
     {
       id: "slide8",
       video: shuffledVideos[7],
-      prompt: "That looks like some cool websites",
+      prompt: "Here's when you're most active online by the hour ⏰",
       metric: false,
-      metric_type: null
+      metric_type: "peakIntro",
     },
     {
       id: "slide9",
       video: shuffledVideos[8],
-      prompt: "", // Chart-only slide for peak hours
+      prompt: "",
       metric: true,
       metric_type: "peakHours",
       chartData: peakHours,
-    },
-    {
-      id: "slide10",
-      video: shuffledVideos[0],
-      prompt: "That looks like some cool websites",
-      metric: false,
-      metric_type: null,
     },
   ];
 };

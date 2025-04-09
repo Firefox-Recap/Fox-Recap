@@ -181,5 +181,22 @@ export const getData = async (timeRange, topDomains, visits, categories) => {
       metric_type: "peakHours",
       chartData: peakHours,
     },
+    {
+      id: "slide10",
+      video: shuffledVideos[0], // or use any extra video
+      prompt: "Here’s when you browse the most, day by day... 📅",
+      metric: false,
+      metric_type: "peakDaysIntro",
+    },
+    {
+      id: "slide11",
+      video: shuffledVideos[1],
+      prompt: "",
+      metric: true,
+      metric_type: "peakDaysChart",
+      chartData: await HistofySDK.getPeakDays(), // ← We'll implement this
+    }
+    
+    
   ];
 };

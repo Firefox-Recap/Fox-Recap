@@ -4,6 +4,7 @@ import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { HistofySDK } from "../sdk/sdk.js";
 import AnalyticsChartSlide from "./AnalyticsChartSlide.jsx";
 import TopCategoriesChartSlide from "./TopCategoriesChartSlide.jsx";
+import PeakDaysRings from "./PeakDaysRings.jsx"; // ✅ UPDATED import
 import "./popup.css";
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {
@@ -42,7 +43,12 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
 
   useEffect(() => {
     const type = slides[index]?.metric_type;
-    if (type === "peakHours" || type === "topCategoriesChart") return;
+    if (
+      type === "peakHours" ||
+      type === "topCategoriesChart" ||
+      type === "peakDaysChart"
+    )
+      return;
 
     const timer = setTimeout(() => {
       if (index < slides.length - 1) setIndex(index + 1);
@@ -87,6 +93,13 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
             : categoryDurations
         }
       />
+    );
+  }
+
+  if (currentSlide?.metric_type === "peakDaysChart") {
+    return renderChartSlide(
+      currentSlide,
+      <PeakDaysRings data={currentSlide.chartData || []} />
     );
   }
 

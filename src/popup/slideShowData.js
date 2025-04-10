@@ -195,7 +195,24 @@ export const getData = async (timeRange, topDomains, visits, categories) => {
       metric: true,
       metric_type: "peakDaysChart",
       chartData: await HistofySDK.getPeakDays(), // ← We'll implement this
+    },
+    {
+      id: "slide12",
+      video: shuffledVideos[2],
+      prompt: "Let’s rewind your journey. Here are your key moments 🎞️",
+      metric: false,
+      metric_type: "journeyIntro",
+    },
+    {
+      id: "slide13",
+      video: shuffledVideos[3],
+      prompt: "",
+      metric: true,
+      metric_type: "journeyTimeline",
+      chartData: await HistofySDK.getJourneyEvents(), // ← Step 2 will define this
     }
+    
+
     
     
   ];

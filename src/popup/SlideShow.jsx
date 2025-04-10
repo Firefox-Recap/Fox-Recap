@@ -4,7 +4,8 @@ import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import { HistofySDK } from "../sdk/sdk.js";
 import AnalyticsChartSlide from "./AnalyticsChartSlide.jsx";
 import TopCategoriesChartSlide from "./TopCategoriesChartSlide.jsx";
-import PeakDaysRings from "./PeakDaysRings.jsx"; // ✅ UPDATED import
+import PeakDaysRings from "./PeakDaysRings.jsx";
+import JourneyTimelineSlide from "./JourneyTimelineSlide.jsx"; // ✅ NEW IMPORT
 import "./popup.css";
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {
@@ -46,7 +47,8 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
     if (
       type === "peakHours" ||
       type === "topCategoriesChart" ||
-      type === "peakDaysChart"
+      type === "peakDaysChart" ||
+      type === "journeyTimeline"
     )
       return;
 
@@ -70,6 +72,7 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
 
   const currentSlide = slides[index];
 
+  // 🧠 Chart Slides
   if (currentSlide?.metric_type === "peakHours") {
     return renderChartSlide(
       currentSlide,
@@ -103,7 +106,14 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
     );
   }
 
-  // 🔥 Default Prompt Slide
+  if (currentSlide?.metric_type === "journeyTimeline") {
+    return renderChartSlide(
+      currentSlide,
+      <JourneyTimelineSlide events={currentSlide.chartData || []} />
+    );
+  }
+
+  // ✨ Prompt Slide
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <video
@@ -124,6 +134,24 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
         )}
       </video>
 
+      <h1
+        style={{
+          color: "#fff",
+          textAlign: "center",
+          width: "80%",
+          position: "absolute",
+          top: "40%",
+          left: "10%",
+          fontSize: "1.8rem",
+          lineHeight: "1.4",
+          fontWeight: 700,
+          zIndex: 9,
+          textShadow: "0 0 10px rgba(0,0,0,0.5)",
+        }}
+      >
+        {currentSlide.prompt}
+      </h1>
+
       <button
         onClick={() => setView("home")}
         style={{
@@ -140,23 +168,6 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
       >
         x
       </button>
-
-      <h1
-        style={{
-          color: "#fff",
-          textAlign: "center",
-          width: "80%",
-          position: "absolute",
-          top: "40%",
-          left: "10%",
-          fontSize: "1.8rem",
-          lineHeight: "1.4",
-          fontWeight: 700,
-          zIndex: 9,
-        }}
-      >
-        {currentSlide.prompt}
-      </h1>
 
       <button
         onClick={handleNext}
@@ -192,7 +203,7 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
     </div>
   );
 
-  // 🧠 Shared Chart Slide Layout
+  // 📊 Chart Slide Renderer
   function renderChartSlide(slide, ChartComponent) {
     return (
       <div style={{ position: "absolute", inset: 0 }}>
@@ -219,6 +230,7 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            padding: "2rem",
           }}
         >
           {ChartComponent}

@@ -153,4 +153,88 @@ export const HistofySDK = {
       )
     }));
   },
+  async getJourneyEvents() {
+    const visits = await this.getVisitDurations();
+    if (!visits || visits.length === 0) return [];
+  
+    const sorted = visits
+      .filter((v) => v.duration > 0)
+      .sort((a, b) => a.timestamp - b.timestamp);
+  
+    const firstVisit = sorted[0];
+    const lastVisit = sorted[sorted.length - 1];
+  
+    const domainDurationMap = {};
+    for (const visit of sorted) {
+      const domain = visit.domain || "unknown";
+      if (!domainDurationMap[domain]) {
+        domainDurationMap[domain] = { duration: 0, count: 0 };
+      }
+      domainDurationMap[domain].duration += visit.duration;
+      domainDurationMap[domain].count += 1;
+    }
+  
+    const mostVisited = Object.entries(domainDurationMap)
+      .sort((a, b) => b[1].count - a[1].count)[0];
+  
+    const longestSession = sorted.reduce(
+      (max, cur) => (cur.duration > max.duration ? cur : max),
+      { duration: 0 }
+    );
+  
+    const lateNight = sorted.find((v) => {
+      const hour = new Date(v.timestamp).getHours();
+      return hour >= 0 && hour <= 5;
+    });
+  
+    const events = [];
+  
+    if (firstVisit) {
+      events.push({
+        type: "first",
+        label: "First Site Visited",
+        domain: firstVisit.domain,
+        time: new Date(firstVisit.timestamp).toLocaleTimeString(),
+      });
+    }
+  
+    if (mostVisited) {
+      events.push({
+        type: "mostVisited",
+        label: "Most Visited Site",
+        domain: mostVisited[0],
+        visits: mostVisited[1].count,
+      });
+    }
+  
+    if (longestSession) {
+      events.push({
+        type: "longest",
+        label: "Longest Session",
+        domain: longestSession.domain,
+        durationMs: longestSession.duration,
+      });
+    }
+  
+    if (lateNight) {
+      events.push({
+        type: "latenight",
+        label: "Late-Night Browsing",
+        domain: lateNight.domain,
+        hour: new Date(lateNight.timestamp).getHours(),
+      });
+    }
+  
+    if (lastVisit) {
+      events.push({
+        type: "last",
+        label: "Last Site Visited",
+        domain: lastVisit.domain,
+        time: new Date(lastVisit.timestamp).toLocaleTimeString(),
+      });
+    }
+  
+    return events;
+  },
+  
 };

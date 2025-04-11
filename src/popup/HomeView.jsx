@@ -95,10 +95,10 @@ const HomeView = ({ onSelectTimeRange }) => {
           }}
         >
           {[
-            { label: 'Day', emoji: '🕒', value: 'day' },
-            { label: 'Week', emoji: '📅', value: 'week' },
-            { label: 'Month', emoji: '📆', value: 'month' }
-          ].map(({ label, emoji, value }) => (
+            { label: 'Day', value: 'day' },
+            { label: 'Week', value: 'week' },
+            { label: 'Month', value: 'month' }
+          ].map(({ label, value }) => (
             <button
               key={value}
               onClick={() => onSelectTimeRange(value)}
@@ -109,7 +109,6 @@ const HomeView = ({ onSelectTimeRange }) => {
                 ...(hovered === value ? buttonHover : {})
               }}
             >
-              <span>{emoji}</span>
               <span>{label}</span>
             </button>
           ))}

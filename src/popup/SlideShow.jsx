@@ -54,7 +54,7 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
 
     const timer = setTimeout(() => {
       if (index < slides.length - 1) setIndex(index + 1);
-    }, 2000);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, [index, slides]);

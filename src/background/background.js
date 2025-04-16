@@ -7,8 +7,7 @@
  */
 
 import initSqlJs from "sql.js";
-import { CATEGORY_OPTIONS } from "../../models/transformers.js";
-import { loadModel, classifyPage, getEmbedding,loadEmbeddingModel } from "../../models/transformers.js";
+import { ensureEngineIsReady, classifyURLAndTitle } from "../../models/mlEngine.js";
 import { DOMAIN_LOCKS } from "../storage/domainLocks.js";
 import { backfillEmbeddingsIfMissing } from "../storage/backfillEmbeddings.js";
 import { getTopVisitedDomains } from './analytics.js';
@@ -23,8 +22,6 @@ import { initDB } from "../storage/indexedDB.js";
 import {
   cacheClassification,
   getCachedClassification,
-  cacheEmbedding,
-  getMatchingEmbedding,
   removeAllStaleForDomain,
   updateStoredCSV,
   getStoredCSV,
@@ -249,14 +246,26 @@ function getDomainFromURL(url) {
 /* --------------------------------------------------
    3) Zero-Shot AI Classification Fallback
 ----------------------------------------------------*/
-async function classifyWithAI(domain, title) {
-  console.log(`🤖 AI Classifying: ${domain}`);
-  await loadModel(); // ensure the AI model is ready
+async function classifyWithAI(domain, title, url) {
+  console.log(`🧠 [ML Engine] Classifying: ${domain}`);
 
-  const textForClassification = `${title} (Domain: ${domain})`;
-  const zeroShotCategory = await classifyPage(textForClassification);
-  return zeroShotCategory || "Other";
+  try {
+    await ensureEngineIsReady();
+
+    const result = await classifyURLAndTitle(url, title);
+    if (Array.isArray(result) && result.length) {
+      // Pick highest-scoring label
+      const best = result.reduce((a, b) => (a.score > b.score ? a : b));
+      console.log(`✅ ML Engine result: ${best.label} (${(best.score * 100).toFixed(2)}%)`);
+      return best.label;
+    }
+  } catch (err) {
+    console.error("❌ [ML Engine] Classification failed:", err);
+  }
+
+  return "Other";
 }
+
 
 /* --------------------------------------------------
    4) CLASSIFY WITH CACHE (Rule-Based + AI)
@@ -356,36 +365,18 @@ export async function classifyWithCache(url, title) {
   }
 
   // 5) RETRIEVE CACHED CLASSIFICATIONS
-  const textForClassification = `${title} (Domain: ${domain})`;
   const cachedCategory = await getCachedClassification(rootDomain, title);
   if (cachedCategory) {
     console.log(`🔄 Using Cached Classification: ${domain}, ${title} → ${cachedCategory}`);
     return cachedCategory;
   }
 
-  // 6) CHECK CACHED EMBEDDINGS
-  let embedding;
-  try {
-    embedding = await getEmbedding(textForClassification);
-    const matchedEmbeddingCategory = await getMatchingEmbedding(embedding);
-    if (matchedEmbeddingCategory) {
-      console.log(`🔄 Using Cached Embedding Classification for "${title}": ${matchedEmbeddingCategory}`);
-      return matchedEmbeddingCategory;
-    }
-  } catch (error) {
-    console.error("❌ Error during embedding generation or matching:", error);
-  }
+  
 
   // 7) AI FALLBACK
-  console.log(`🤖 AI Fallback Triggered for: ${title}`);
-  const zeroShotCategory = await classifyPage(textForClassification);
-  const finalCategory = (zeroShotCategory && CATEGORY_OPTIONS.includes(zeroShotCategory))
-    ? zeroShotCategory
-    : "Other";
-
-  if (embedding) {
-    await cacheEmbedding(textForClassification, embedding, finalCategory);
-  }
+  // 7) AI FALLBACK via Firefox ML Engine
+  console.log(`🤖 ML Engine Fallback Triggered for: ${title}`);
+  const finalCategory = await classifyWithAI(domain, title, url);
 
   // OLD: await cacheClassification(title, finalCategory);
   await cacheClassification({
@@ -421,16 +412,18 @@ async function processBatchClassification() {
     batchTimer = null;
     return;
   }
-  await loadModel();
+
   console.log(`🚀 Batch classifying ${classificationQueue.length} pages...`);
 
   for (const { url, title } of classificationQueue) {
     const category = await classifyWithCache(url, title);
     await saveHistory(url, title, category);
   }
+
   classificationQueue.length = 0;
   batchTimer = null;
 }
+
 
 /* --------------------------------------------------
    6) IN-MEMORY DB SETUP
@@ -576,14 +569,20 @@ function attachEventListeners() {
     console.log("✅ Background script's in-memory DB fully ready!");
   })();
 
-  // ✅ Preload both AI models
-  console.time("🧠 Model Load Time");
-  await loadModel();
-  console.timeEnd("🧠 Model Load Time");
+ // ✅ Conditionally initialize Firefox ML Engine (only if available)
+try {
+  const hasML = await browser.permissions.contains({ permissions: ["trialML"] });
+  if (hasML && browser.trial?.ml) {
+    console.time("🧠 Firefox ML Engine Load Time");
+    await ensureEngineIsReady(); // from mlEngine.js
+    console.timeEnd("🧠 Firefox ML Engine Load Time");
+  } else {
+    console.warn("⚠️ Skipping ML engine init in background (trialML not available)");
+  }
+} catch (err) {
+  console.error("❌ Error checking trialML permissions or initializing ML engine:", err);
+}
 
-  console.time("🧠 Embedding Model Load Time");
-  await loadEmbeddingModel();
-  console.timeEnd("🧠 Embedding Model Load Time");
 
   // ✅ Restore missing embeddings
   await loadEmbeddingRecoveryIfMissing();
@@ -615,6 +614,7 @@ function attachEventListeners() {
 
 
 
+
 /* --------------------------------------------------
    10) CSV UTILS: UPDATE & GET
 ----------------------------------------------------*/
@@ -636,9 +636,6 @@ export async function updateCSVStorage() {
 /* --------------------------------------------------
    11) USER LABELS / MESSAGES
 ----------------------------------------------------*/
-//---------------------------------------------------
-// Replace your entire onMessage block with this:
-//---------------------------------------------------
 browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   console.log("[Background] Message received:", msg);
 
@@ -705,18 +702,17 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   else if (msg.action === "GET_TOP_VISITED_DOMAINS") {
     console.log("📊 [Background] Received GET_TOP_VISITED_DOMAINS request");
 
-    // Don't use `async` on the listener; just return true below.
     getTopVisitedDomains(msg.limit || 10)
       .then((data) => {
         console.log("📊 [Background] Top domains (MOCK):", data);
-        sendResponse({ success: true, data }); // <— The object your popup expects
+        sendResponse({ success: true, data });
       })
       .catch((err) => {
         console.error("❌ [Background] Error in getTopVisitedDomains:", err);
         sendResponse({ success: false, error: err.message });
       });
 
-    return true; // <-- Keeps message port open for the async .then() above
+    return true;
   }
 
   // --- GET_ALL_VISITS ---
@@ -823,12 +819,44 @@ browser.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  // --- ENABLE_ML FROM POPUP ---
+  else if (msg.action === "ENABLE_ML") {
+    console.log("📩 Received ENABLE_ML from popup...");
+  
+    (async () => {
+      if (!browser.trial?.ml) {
+        console.warn("⚠️ ENABLE_ML called but browser.trial is still undefined.");
+        sendResponse({ success: false, error: "ML API still unavailable" });
+        return;
+      }
+  
+      const { engineCreated } = await browser.storage.session.get({ engineCreated: false });
+  
+      try {
+        if (!engineCreated) {
+          await ensureEngineIsReady(); // ← this creates the engine
+          console.log("✅ ML engine initialized.");
+        } else {
+          console.log("🧠 ML engine already initialized.");
+        }
+  
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error("❌ Failed to initialize engine in ENABLE_ML:", err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+  
+    return true;
+  }
+  
+
   // --- Unknown Message ---
   else {
     console.warn("⚠️ [Background] Unrecognized message:", msg);
-    // no response
   }
 });
+
 
 
 /* --------------------------------------------------

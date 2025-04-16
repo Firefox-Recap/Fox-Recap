@@ -10,7 +10,6 @@ import {
 } from "recharts";
 import { motion } from "framer-motion";
 
-// === Duration Formatter ===
 const formatDuration = (ms) => {
   const mins = Math.floor(ms / 60000);
   if (mins >= 60) {
@@ -21,7 +20,6 @@ const formatDuration = (ms) => {
   return `${mins}m`;
 };
 
-// === Tooltip ===
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload?.length) {
     const { category, duration } = payload[0].payload;
@@ -44,7 +42,6 @@ const CustomTooltip = ({ active, payload }) => {
   return null;
 };
 
-// === Main Component ===
 const TopCategoriesChart = ({ data }) => {
   if (!Array.isArray(data) || data.length === 0) {
     return (
@@ -57,10 +54,6 @@ const TopCategoriesChart = ({ data }) => {
     );
   }
 
-  const maxDuration = Math.max(...data.map((d) => d.duration));
-  const domainMax = maxDuration > 0 ? maxDuration + 30000 : "auto";
-
-  // Emojis for category names
   const emojiMap = {
     "Shopping & E-Commerce": "🛍",
     "Technology & Development": "💻",
@@ -82,27 +75,28 @@ const TopCategoriesChart = ({ data }) => {
     Uncategorized: "❓",
   };
 
-  // Sort data from most to least duration
-  const sortedData = [...data].sort((a, b) => b.duration - a.duration);
+  // ✅ FILTER: Remove "Uncategorized"
+  const filtered = data.filter((d) => d.category !== "Uncategorized");
 
-  // Add emojis to category labels
+  const maxDuration = Math.max(...filtered.map((d) => d.duration));
+  const domainMax = maxDuration > 0 ? maxDuration + 30000 : "auto";
+
+  const sortedData = [...filtered].sort((a, b) => b.duration - a.duration);
+
   const labeledData = sortedData.map((item) => ({
     ...item,
     category: `${emojiMap[item.category] || ""} ${item.category}`,
   }));
 
-  // Style bars dynamically
   const renderBar = (props) => {
-    const { x, y, width, height, payload } = props;
-    const isUncategorized = payload.category.includes("Uncategorized");
-    const barColor = isUncategorized ? "#999" : "url(#categoryGradient)";
+    const { x, y, width, height } = props;
     return (
       <rect
         x={x}
         y={y}
         width={width}
         height={height}
-        fill={barColor}
+        fill="url(#categoryGradient)"
         rx={4}
         ry={4}
       />
@@ -124,7 +118,6 @@ const TopCategoriesChart = ({ data }) => {
         position: "relative",
       }}
     >
-      {/* Animated Label */}
       <h2
         style={{
           fontSize: "1.4rem",
@@ -137,7 +130,6 @@ const TopCategoriesChart = ({ data }) => {
         Your Most Visited Categories
       </h2>
 
-      {/* Animated Chart Container */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
@@ -188,7 +180,6 @@ const TopCategoriesChart = ({ data }) => {
         </ResponsiveContainer>
       </motion.div>
 
-      {/* Caption */}
       <p
         style={{
           marginTop: "0.8rem",

@@ -8,8 +8,16 @@ import {
   storeVisitDetails,
 } from './datahandlers.js';
 
-// listeners
+(async () => {
+  try {
+    await initDB();
+    console.log('IndexedDB initialized');
+  } catch (error) {
+    console.error('Failed to initialize IndexedDB:', error);
+  }
+})();
 
+// listeners
 // Listen for new history items and add them to the database
 browser.history.onVisited.addListener(async (historyItem) => {
   try {

@@ -1,23 +1,23 @@
 const dbName = 'firefoxRecapDB';
 const dbVersion = 1;
-let db;
+export let db; 
 
 export function initDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName, dbVersion);
+    const req = indexedDB.open(dbName, dbVersion);
 
-    request.onerror = (event) => {
+    req.onerror = (event) => {
       console.error('IndexedDB error:', event.target.error);
       reject(event.target.error);
     };
 
-    request.onsuccess = (event) => {
-      db = event.target.result;
+    req.onsuccess = (event) => {
+      db = event.target.result; 
       console.log('Database initialized successfully');
       resolve(db);
     };
 
-    request.onupgradeneeded = (event) => {
+    req.onupgradeneeded = (event) => {
       const db = event.target.result;
 
       // Create object stores

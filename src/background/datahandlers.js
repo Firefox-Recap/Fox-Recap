@@ -1,3 +1,5 @@
+import { db } from './db.js';            
+import { extractDomain } from './util.js';
 import {shouldBlockDomain} from './blacklist.js';
 
 // Function to store history items in the database from the history api
@@ -377,3 +379,11 @@ async function getCategoryFromDB(url) {
     };
   });
 }
+
+export {
+  storeHistoryItems,
+  storeVisitDetails,
+  getHistoryFromDB,
+  getVisitDetailsFromDB,
+  getMostVisitedFromDB,
+};

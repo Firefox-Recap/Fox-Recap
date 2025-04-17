@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getData } from "./slideShowData";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import { HistofySDK } from "../sdk/sdk.js";
 import AnalyticsChartSlide from "./AnalyticsChartSlide.jsx";
 import TopCategoriesChartSlide from "./TopCategoriesChartSlide.jsx";
 import PeakDaysRings from "./PeakDaysRings.jsx";
-import JourneyTimelineSlide from "./JourneyTimelineSlide.jsx"; // ✅ NEW IMPORT
+import JourneyTimelineSlide from "./JourneyTimelineSlide.jsx"; 
 import "./popup.css";
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {

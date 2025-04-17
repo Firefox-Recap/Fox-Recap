@@ -1,5 +1,4 @@
 import promptsData from "./prompts.json";
-import { HistofySDK } from "../sdk/sdk.js";
 
 const timeRangeMap = {
   day: "today",

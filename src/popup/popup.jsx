@@ -3,13 +3,6 @@ import { createRoot } from 'react-dom/client';
 import HomeView from './HomeView';
 import SlideShow from './SlideShow';
 import promptsData from './prompts.json';
-import { HistofySDK } from '../sdk/sdk.js';
-
-// ✅ Expose SDK for DevTools
-if (typeof window !== 'undefined') {
-  window.HistofySDK = HistofySDK;
-  console.log("✅ HistofySDK is now available on window.HistofySDK");
-}
 
 const formatDuration = (ms) => {
   const seconds = Math.floor(ms / 1000) % 60;

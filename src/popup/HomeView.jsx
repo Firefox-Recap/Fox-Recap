@@ -156,6 +156,24 @@ const HomeView = ({ onSelectTimeRange }) => {
   );
 };
 
+const buttonBase = {
+  padding: '12px 28px',
+  fontSize: '20px',
+  fontWeight: '600',
+  border: '2px solid white',
+  borderRadius: '12px',
+  backgroundColor: 'transparent',
+  color: '#ffffff',
+  cursor: 'pointer',
+  transition: 'all 0.3s ease',
+};
+
+const buttonHover = {
+  backgroundColor: '#ffffff',
+  color: '#000000',
+  transform: 'scale(1.05)',
+};
+
 HomeView.propTypes = {
   onSelectTimeRange: PropTypes.func.isRequired
 };

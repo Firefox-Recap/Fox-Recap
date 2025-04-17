@@ -100,11 +100,7 @@ initDB()
   })
   .then(() => {
     console.log('Initial history fetch completed');
-    // Add this global flag that popup.jsx checks
-    window.isHistofyBackgroundReady = true;
   })
   .catch((error) => {
     console.error('Error during initialization:', error);
-    // Still mark as ready even on error
-    window.isHistofyBackgroundReady = true;
   });

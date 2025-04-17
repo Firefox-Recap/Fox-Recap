@@ -1,0 +1,31 @@
+{
+  "manifest_version": 2,
+  "name": "Firefox Recap",
+  "version": "2.0.0",
+  "description": "Categorize and analyze browsing history for productivity insights.",
+  "permissions": [
+    "history",
+    "storage",
+    "tabs",
+    "webNavigation",
+    "downloads",
+    "*://big.oisd.nl/*"
+  ],
+  "optional_permissions": ["trialML"],
+  "background": {
+    "scripts": ["background/background.js"],
+    "persistent": true
+  },
+  "browser_action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "48": "assets/icon48.png",
+      "128": "assets/icon128.png"
+    }
+  },
+  "icons": {
+    "48": "assets/icon48.png",
+    "128": "assets/icon128.png"
+  },
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; connect-src 'self' https://big.oisd.nl; object-src 'self';"
+}

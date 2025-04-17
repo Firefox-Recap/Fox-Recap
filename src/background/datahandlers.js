@@ -86,7 +86,7 @@ async function storeVisitDetails(url, visits) {
 }
 
 // Function to fetch history from the API and store in DB this makes sure that we dont constantly call the api ever time and we can store whatever information we get in this
-async function fetchAndStoreHistory(days = 30) {
+export async function fetchAndStoreHistory(days = 30) {
   const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
   try {

@@ -61,3 +61,16 @@ export function saveCategories(url, categories) {
   });
 }
 
+export function getCategoryFromDB(url) {
+  return new Promise((resolve, reject) => {
+    const tx    = db.transaction('categories', 'readonly');
+    const store = tx.objectStore('categories');
+    const req   = store.get(url);
+    req.onsuccess = () => {
+      const result = req.result;
+      resolve(result?.categories || null);
+    };
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+

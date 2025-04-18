@@ -6,8 +6,10 @@ import {
   getMostVisitedFromDB,
   storeHistoryItems,
   storeVisitDetails,
+  getTopCategoriesFromDB
 } from './datahandlers.js';
 import { classifyURLAndTitle, THRESHOLD, ensureEngineIsReady } from './ml.js';
+import { getCategoryFromDB } from './db.js';
 
 (async () => {
   try {
@@ -35,8 +37,13 @@ browser.history.onVisited.addListener(async (historyItem) => {
     await storeHistoryItems([historyItem]);
     const visits = await browser.history.getVisits({url: historyItem.url});
     await storeVisitDetails(historyItem.url, visits);
-    await classifyURLAndTitle(historyItem.url, historyItem.title);
-    console.log(`Updated database with new visit & classification: ${historyItem.url}`);
+
+    // only classify if no existing category
+    const existing = await getCategoryFromDB(historyItem.url);
+    if (!existing) {
+      await classifyURLAndTitle(historyItem.url, historyItem.title);
+      console.log(`Classified: ${historyItem.url}`);
+    }
   } catch (error) {
     console.error('Error handling history event:', error);
   }
@@ -44,75 +51,108 @@ browser.history.onVisited.addListener(async (historyItem) => {
 
 // Update the message handler to return the stats
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === 'getHistory') {
-    getHistoryFromDB(message.days)
-      .then((result) =>
-        sendResponse({
-          success: true,
-          data: result.data,
-          stats: result.stats,
-        }),
-      )
-      .catch((error) =>
-        sendResponse({
-          success: false,
-          error: error.toString(),
-        }),
-      );
-    return true; // Required for asynchronous sendResponse
-  } else if (message.action === 'getVisits') {
-    getVisitDetailsFromDB(message.url)
-      .then((result) =>
-        sendResponse({
-          success: true,
-          data: result.data,
-          stats: result.stats,
-        }),
-      )
-      .catch((error) =>
-        sendResponse({
-          success: false,
-          error: error.toString(),
-        }),
-      );
-    return true;
-  } else if (message.action === 'getMostVisited') {
-    getMostVisitedFromDB(message.days, message.limit)
-      .then((result) =>
-        sendResponse({
-          success: true,
-          data: result.data,
-          stats: result.stats,
-        }),
-      )
-      .catch((error) =>
-        sendResponse({
-          success: false,
-          error: error.toString(),
-        }),
-      );
-    return true;
-  } else if (message.action === 'GET_TOP_VISITED_DOMAINS') {
-    getMostVisitedFromDB(message.days || 30, message.limit || 10)
-      .then((result) => 
-        sendResponse({
-          success: true,
-          data: result.data
-        })
-      )
-      .catch((error) =>
-        sendResponse({
-          success: false,
-          error: error.toString(),
-        })
-      );
-    return true;
-
-  } else if (message.action === "ENABLE_ML") {
-    ensureEngineIsReady()
-      .then(() => sendResponse({ success: true }))
-      .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true; 
+  switch (message.action) {
+    case 'getHistory': {
+      getHistoryFromDB(message.days)
+        .then((result) =>
+          sendResponse({
+            success: true,
+            data: result.data,
+            stats: result.stats,
+          }),
+        )
+        .catch((error) =>
+          sendResponse({
+            success: false,
+            error: error.toString(),
+          }),
+        );
+      return true; // Required for asynchronous sendResponse
+    }
+    case 'getVisits': {
+      getVisitDetailsFromDB(message.url)
+        .then((result) =>
+          sendResponse({
+            success: true,
+            data: result.data,
+            stats: result.stats,
+          }),
+        )
+        .catch((error) =>
+          sendResponse({
+            success: false,
+            error: error.toString(),
+          }),
+        );
+      return true;
+    }
+    case 'getMostVisited': {
+      getMostVisitedFromDB(message.days, message.limit)
+        .then((result) =>
+          sendResponse({
+            success: true,
+            data: result.data,
+            stats: result.stats,
+          }),
+        )
+        .catch((error) =>
+          sendResponse({
+            success: false,
+            error: error.toString(),
+          }),
+        );
+      return true;
+    }
+    case 'GET_TOP_VISITED_DOMAINS': {
+      getMostVisitedFromDB(message.days || 30, message.limit || 10)
+        .then((result) => 
+          sendResponse({
+            success: true,
+            data: result.data
+          })
+        )
+        .catch((error) =>
+          sendResponse({
+            success: false,
+            error: error.toString(),
+          })
+        );
+      return true;
+    }
+    case "ENABLE_ML": {
+      ensureEngineIsReady()
+        .then(() => sendResponse({ success: true }))
+        .catch((err) => sendResponse({ success: false, error: err.message }));
+      return true; 
+    }
+    case 'GET_RECAP_DATA': {
+      const rangeMap = { day: 1, week: 7, month: 30 };
+      const days = rangeMap[message.timeRange] || 1;
+      (async () => {
+        try {
+          await fetchAndStoreHistory(days);
+          const hist = await getHistoryFromDB(days);
+          const top = await getMostVisitedFromDB(days, message.limit);
+          sendResponse({
+            success: true,
+            data: {
+              history: hist.data,
+              topDomains: top.data,
+              stats: { history: hist.stats, topDomains: top.stats }
+            }
+          });
+        } catch (err) {
+          sendResponse({ success: false, error: err.toString() });
+        }
+      })();
+      return true;
+    }
+    case 'GET_TOP_CATEGORIES': {
+      getTopCategoriesFromDB(message.days, message.limit)
+        .then(data => sendResponse({ success: true, data }))
+        .catch(err  => sendResponse({ success: false, error: err.toString() }));
+      return true;
+    }
   }
 });
 
@@ -132,13 +172,3 @@ async function fetchInitialHistory() {
 
 // intialization
 initDB()
-  .then(() => {
-    console.log('Starting initial history fetch...');
-    return fetchAndStoreHistory(1); // etch past 30 days by default
-  })
-  .then(() => {
-    console.log('Initial history fetch completed');
-  })
-  .catch((error) => {
-    console.error('Error during initialization:', error);
-  });

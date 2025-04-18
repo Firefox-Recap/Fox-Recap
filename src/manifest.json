@@ -24,13 +24,13 @@
   "browser_action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "48": "assets/icon48.png",
-      "128": "assets/icon128.png"
+      "48": "src/assets/icon48.png",
+      "128": "src/assets/icon128.png"
     }
   },
   "icons": {
-    "48": "assets/icon48.png",
-    "128": "assets/icon128.png"
+    "48": "src/assets/icon48.png",
+    "128": "src/assets/icon128.png"
   },
   "content_security_policy": "script-src 'self'; object-src 'self'; connect-src https://big.oisd.nl"
 }

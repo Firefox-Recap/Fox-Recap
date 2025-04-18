@@ -10,13 +10,12 @@ const displayMessage = async (tabId, message) => {
     );
     return;
   }
-  await browser.scripting.executeScript({
-    target: { tabId },
-    func: (message) => {
-      const { altTextModal } = window;
-      altTextModal.updateText(message);
-    },
-    args: [message],
+  await browser.tabs.executeScript(tabId, {
+    code: `
+      (function(msg){
+        if(window.altTextModal) window.altTextModal.updateText(msg);
+      })(${JSON.stringify(message)});
+    `
   });
 };
 

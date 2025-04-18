@@ -1,24 +1,50 @@
 import { db } from './db.js';
 import { extractDomain } from './util.js';
 import { shouldBlockDomain } from './blacklist.js';
-import { saveCategories } from './db.js';
 import { classifyURLAndTitle, THRESHOLD } from './ml.js';
+import { getCategoryFromDB, saveCategories } from './db.js';
+
+/**
+ * Read every saved categories entry,
+ * count how many times each label appears,
+ * return top N.
+ */
+export async function getTopCategoriesFromDB(days = 30, limit = 10) {
+  // (days param is optional – you could filter by timestamp if you store it)
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('categories', 'readonly');
+    const store = tx.objectStore('categories');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      const all = req.result; // [{ url, categories:[{label,score},…] },…]
+      const counts = all.reduce((acc, rec) => {
+        rec.categories.forEach(c => {
+          acc[c.label] = (acc[c.label] || 0) + 1;
+        });
+        return acc;
+      }, {});
+      const top = Object.entries(counts)
+        .sort(([,a],[,b]) => b - a)
+        .slice(0, limit)
+        .map(([category, count]) => ({ category, count }));
+      resolve(top);
+    };
+    req.onerror = e => reject(e.target.error);
+  });
+}
 
 // Function to store history items in the database from the history api
 async function storeHistoryItems(items) {
-  const toStore = items.filter((item) => !shouldBlockDomain(item.url));
-  if (toStore.length === 0) {
-    console.log(`[datahandlers] No items to store after blacklist filter`);
-    return 0;
-  }
+  const toStore = items.filter(item => !shouldBlockDomain(item.url));
+  if (!toStore.length) return 0;
 
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['historyItems'], 'readwrite');
-    const historyStore = transaction.objectStore('historyItems');
+    const tx = db.transaction(['historyItems'], 'readwrite');
+    const store = tx.objectStore('historyItems');
     let successCount = 0;
 
-    toStore.forEach((item) => {
-      const request = historyStore.put({
+    toStore.forEach(item => {
+      const req = store.put({
         url: item.url,
         title: item.title,
         lastVisitTime: item.lastVisitTime,
@@ -27,25 +53,23 @@ async function storeHistoryItems(items) {
         domain: extractDomain(item.url),
       });
 
-      request.onsuccess = () => {
+      req.onsuccess = async () => {
         successCount++;
-        if (successCount === toStore.length) {
-          resolve(successCount);
+        try {
+          const existing = await getCategoryFromDB(item.url);
+          if (!existing) {
+            await classifyURLAndTitle(item.url, item.title);
+          }
+        } catch (err) {
+          console.error('Classification error:', err);
         }
+        if (successCount === toStore.length) resolve(successCount);
       };
 
-      request.onerror = (event) => {
-        console.error('Error storing history item:', event.target.error);
-      };
+      req.onerror = e => console.error('Error storing history item:', e.target.error);
     });
 
-    transaction.oncomplete = () => {
-      console.log(`Stored ${successCount} history items`);
-    };
-    transaction.onerror = (event) => {
-      console.error('Transaction error:', event.target.error);
-      reject(event.target.error);
-    };
+    tx.onerror = e => reject(e.target.error);
   });
 }
 
@@ -90,39 +114,36 @@ async function storeVisitDetails(url, visits) {
 }
 
 // Function to fetch history from the API, classify, and store in DB
-export async function fetchAndStoreHistory(days = 30) {
+async function fetchAndStoreHistory(days = 30) {
+  // pull raw history once
   const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
+  const items = await browser.history.search({
+    text: '',
+    startTime,
+    maxResults: 999999,
+  });
+  // store raw + visits
+  await storeHistoryItems(items);
 
-  try {
-    const historyItems = await browser.history.search({
-      text: '',
-      startTime,
-      maxResults: 999999,
-    });
-    await storeHistoryItems(historyItems);
+  for (const item of items) {
+    // store visitDetails
+    const visits = await browser.history.getVisits({ url: item.url });
+    await storeVisitDetails(item.url, visits);
 
-    for (const item of historyItems) {
-      // 1) store visit details
-      const visits = await browser.history.getVisits({ url: item.url });
-      await storeVisitDetails(item.url, visits);
-
-      // 2) classify + filter by THRESHOLD
+    // **only classify if we don't already have categories for this URL**
+    const existing = await getCategoryFromDB(item.url);
+    if (!existing) {
       const result = await classifyURLAndTitle(item.url, item.title, /* no tab */);
       if (result) {
         const labels = result
           .filter(r => r.score >= THRESHOLD)
           .map(r => r.label);
-        // 3) save into IndexedDB
-        await saveCategories(item.url, labels);
+        await saveCategories(item.url, labels.length ? labels : ['Uncategorized']);
       }
     }
-
-    console.log(
-      `Successfully fetched, classified & stored history for ${days} days`
-    );
-  } catch (error) {
-    console.error('Error fetching/storing/classifying history:', error);
   }
+
+  console.log(`fetchAndStoreHistory(${days}) complete`);
 }
 
 // Modified getHistoryFromDB to include timing information based on the ajusted timestamp
@@ -353,48 +374,10 @@ async function getVisitDetailsFromDB(url) {
   }
 }
 
-// Store category for a URL
-async function storeCategory(url, category) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['categories'], 'readwrite');
-    const categoriesStore = transaction.objectStore('categories');
-
-    const request = categoriesStore.put({
-      url: url,
-      category: category,
-    });
-
-    request.onsuccess = () => {
-      resolve(true);
-    };
-
-    request.onerror = (event) => {
-      reject(event.target.error);
-    };
-  });
-}
-
-// Get category for a URL
-async function getCategoryFromDB(url) {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(['categories'], 'readonly');
-    const categoriesStore = transaction.objectStore('categories');
-
-    const request = categoriesStore.get(url);
-
-    request.onsuccess = () => {
-      resolve(request.result ? request.result.category : null);
-    };
-
-    request.onerror = (event) => {
-      reject(event.target.error);
-    };
-  });
-}
-
 export {
   storeHistoryItems,
   storeVisitDetails,
+  fetchAndStoreHistory,
   getHistoryFromDB,
   getVisitDetailsFromDB,
   getMostVisitedFromDB,

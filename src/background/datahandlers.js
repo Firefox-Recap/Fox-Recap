@@ -49,6 +49,8 @@ export async function getTopCategoriesFromDB(days = 30, limit = 10) {
   });
 }
 
+
+
 // Function to store history items in the database from the history api
 async function storeHistoryItems(items) {
   const toStore = items.filter(item => !shouldBlockDomain(item.url));
@@ -210,10 +212,23 @@ async function _getHistoryFromDB(days) {
     stats.fromCache = fromCache;
     const endTime = performance.now();
 
+    // Fetch all visitDetails to compute duration
+    const visitDetailsTx = db.transaction(['visitDetails'], 'readonly');
+    const visitStore = visitDetailsTx.objectStore('visitDetails');
+    const visitIndex = visitStore.index('visitTime');
+    const visitReq = visitIndex.getAll(IDBKeyRange.lowerBound(startTimeMs));
+    const visits = await new Promise((resolve, reject) => {
+      visitReq.onsuccess = () => resolve(visitReq.result);
+      visitReq.onerror = e => reject(e.target.error);
+    });
+
+    const browsingDuration = estimateBrowsingDuration(visits);
+
     return {
       data: results,
       stats: stats,
       totalTime: (endTime - startTime) / 1000,
+      duration: browsingDuration, // ⬅️ this is your new stat
     };
   } catch (error) {
     console.error('Error in getHistoryFromDB:', error);
@@ -226,6 +241,22 @@ export async function getHistoryFromDB(days) {
   const result = await _getHistoryFromDB(days);
   historyCache[days] = result;
   return result;
+}
+
+function estimateBrowsingDuration(visits) {
+  const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+  const sorted = visits
+    .map(v => v.visitTime)
+    .sort((a, b) => a - b);
+
+  let duration = 0;
+  for (let i = 1; i < sorted.length; i++) {
+    const gap = sorted[i] - sorted[i - 1];
+    if (gap < SESSION_TIMEOUT_MS) {
+      duration += gap;
+    }
+  }
+  return duration / 1000; // return in seconds
 }
 
 // Similarly modify getMostVisitedFromDB to include timing metrics

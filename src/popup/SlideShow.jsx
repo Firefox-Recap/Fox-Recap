@@ -4,30 +4,24 @@ import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 import AnalyticsChartSlide from "./AnalyticsChartSlide.jsx";
 import TopCategoriesChartSlide from "./TopCategoriesChartSlide.jsx";
 import PeakDaysRings from "./PeakDaysRings.jsx";
-import JourneyTimelineSlide from "./JourneyTimelineSlide.jsx"; 
+import JourneyTimelineSlide from "./JourneyTimelineSlide.jsx";
 import "./popup.css";
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {
   const [slides, setSlides] = useState([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [visitDurations, setVisitDurations] = useState([]);
-  const [categoryDurations, setCategoryDurations] = useState([]);
   const videoRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [visits, categories] = await Promise.all([
-          HistofySDK.getVisitDurations(),
-          HistofySDK.getCategoryDurations(),
-        ]);
-        setVisitDurations(visits);
-        setCategoryDurations(categories);
+        const visits = [];
+        const categories = [];
         const data = await getData(timeRange, topDomains, visits, categories);
         setSlides(data);
       } catch (err) {
-        console.error("❌ Failed to load metrics or slides:", err);
+        console.error("❌ Failed to load slides:", err);
       } finally {
         setLoading(false);
       }
@@ -36,25 +30,15 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
   }, [timeRange, topDomains]);
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.load();
-    }
+    if (videoRef.current) videoRef.current.load();
   }, [index]);
 
   useEffect(() => {
     const type = slides[index]?.metric_type;
-    if (
-      type === "peakHours" ||
-      type === "topCategoriesChart" ||
-      type === "peakDaysChart" ||
-      type === "journeyTimeline"
-    )
-      return;
-
+    if (["peakHours", "topCategoriesChart", "peakDaysChart", "journeyTimeline"].includes(type)) return;
     const timer = setTimeout(() => {
       if (index < slides.length - 1) setIndex(index + 1);
     }, 5000);
-
     return () => clearTimeout(timer);
   }, [index, slides]);
 
@@ -62,57 +46,11 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
   const handleNext = () => setIndex((prev) => prev + 1);
 
   if (loading) {
-    return (
-      <div style={{ color: "white", padding: "2rem" }}>
-        <h2>Loading metrics and slides...</h2>
-      </div>
-    );
+    return <div style={{ color: "white", padding: "2rem" }}><h2>Loading slides...</h2></div>;
   }
 
   const currentSlide = slides[index];
 
-  // 🧠 Chart Slides
-  if (currentSlide?.metric_type === "peakHours") {
-    return renderChartSlide(
-      currentSlide,
-      <AnalyticsChartSlide
-        data={
-          currentSlide.chartData?.length
-            ? currentSlide.chartData
-            : visitDurations
-        }
-      />
-    );
-  }
-
-  if (currentSlide?.metric_type === "topCategoriesChart") {
-    return renderChartSlide(
-      currentSlide,
-      <TopCategoriesChartSlide
-        data={
-          currentSlide.chartData?.length
-            ? currentSlide.chartData
-            : categoryDurations
-        }
-      />
-    );
-  }
-
-  if (currentSlide?.metric_type === "peakDaysChart") {
-    return renderChartSlide(
-      currentSlide,
-      <PeakDaysRings data={currentSlide.chartData || []} />
-    );
-  }
-
-  if (currentSlide?.metric_type === "journeyTimeline") {
-    return renderChartSlide(
-      currentSlide,
-      <JourneyTimelineSlide events={currentSlide.chartData || []} />
-    );
-  }
-
-  // ✨ Prompt Slide
   return (
     <div style={{ position: "absolute", inset: 0 }}>
       <video
@@ -120,21 +58,13 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
         autoPlay
         loop
         muted
-        style={{
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          position: "absolute",
-          inset: 0,
-        }}
+        style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", inset: 0 }}
       >
-        {slides.length > 0 && (
-          <source src={currentSlide.video} type="video/mp4" />
-        )}
+        {slides.length > 0 && <source src={currentSlide.video} type="video/mp4" />}
       </video>
 
-      <h1
-        style={{
+      {currentSlide.prompt && (
+        <h1 style={{
           color: "#fff",
           textAlign: "center",
           width: "80%",
@@ -145,147 +75,21 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
           lineHeight: "1.4",
           fontWeight: 700,
           zIndex: 9,
-          textShadow: "0 0 10px rgba(0,0,0,0.5)",
-        }}
-      >
-        {currentSlide.prompt}
-      </h1>
+          textShadow: "0 0 10px rgba(0,0,0,0.5)"
+        }}>{currentSlide.prompt}</h1>
+      )}
 
-      <button
-        onClick={() => setView("home")}
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          fontSize: "40px",
-          border: "none",
-          background: "transparent",
-          color: "#fff",
-          cursor: "pointer",
-          zIndex: 10,
-        }}
-      >
-        x
-      </button>
+      <button onClick={() => setView("home")} style={{ position: "absolute", top: "10px", right: "10px", fontSize: "40px", background: "transparent", color: "#fff", border: "none", cursor: "pointer", zIndex: 10 }}>x</button>
 
-      <button
-        onClick={handleNext}
-        disabled={index >= slides.length - 1}
-        style={{
-          position: "absolute",
-          right: "10px",
-          top: "45%",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          zIndex: 10,
-        }}
-      >
+      <button onClick={handleNext} disabled={index >= slides.length - 1} style={{ position: "absolute", right: "10px", top: "45%", background: "transparent", border: "none", cursor: "pointer", zIndex: 10 }}>
         <FaArrowRight size={32} color="#fff" />
       </button>
 
-      <button
-        onClick={handlePrevious}
-        disabled={index === 0}
-        style={{
-          position: "absolute",
-          left: "10px",
-          top: "45%",
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          zIndex: 10,
-        }}
-      >
+      <button onClick={handlePrevious} disabled={index === 0} style={{ position: "absolute", left: "10px", top: "45%", background: "transparent", border: "none", cursor: "pointer", zIndex: 10 }}>
         <FaArrowLeft size={32} color="#fff" />
       </button>
     </div>
   );
-
-  // 📊 Chart Slide Renderer
-  function renderChartSlide(slide, ChartComponent) {
-    return (
-      <div style={{ position: "absolute", inset: 0 }}>
-        <video
-          ref={videoRef}
-          autoPlay
-          loop
-          muted
-          style={{
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            position: "absolute",
-            inset: 0,
-          }}
-        >
-          {slides.length > 0 && <source src={slide.video} type="video/mp4" />}
-        </video>
-
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "2rem",
-          }}
-        >
-          {ChartComponent}
-        </div>
-
-        <button
-          onClick={() => setView("home")}
-          style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            fontSize: "40px",
-            border: "none",
-            background: "transparent",
-            color: "#fff",
-            cursor: "pointer",
-            zIndex: 10,
-          }}
-        >
-          x
-        </button>
-
-        <button
-          onClick={handleNext}
-          disabled={index >= slides.length - 1}
-          style={{
-            position: "absolute",
-            right: "10px",
-            top: "45%",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            zIndex: 10,
-          }}
-        >
-          <FaArrowRight size={32} color="#fff" />
-        </button>
-
-        <button
-          onClick={handlePrevious}
-          disabled={index === 0}
-          style={{
-            position: "absolute",
-            left: "10px",
-            top: "45%",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-            zIndex: 10,
-          }}
-        >
-          <FaArrowLeft size={32} color="#fff" />
-        </button>
-      </div>
-    );
-  }
 };
 
 export default SlideShow;

@@ -60,7 +60,8 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             data: result.data,
             stats: {
               ...result.stats,
-              totalTime: result.totalTime
+              totalTime: result.totalTime,
+              totalDuration: result.duration 
             }
           }),
         )

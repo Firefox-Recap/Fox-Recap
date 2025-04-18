@@ -387,7 +387,6 @@ export {
   storeHistoryItems,
   storeVisitDetails,
   fetchAndStoreHistory,
-  getHistoryFromDB,
   getVisitDetailsFromDB,
   getMostVisitedFromDB,
 };

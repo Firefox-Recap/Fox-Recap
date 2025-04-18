@@ -35,7 +35,8 @@ browser.history.onVisited.addListener(async (historyItem) => {
     await storeHistoryItems([historyItem]);
     const visits = await browser.history.getVisits({url: historyItem.url});
     await storeVisitDetails(historyItem.url, visits);
-    console.log(`Updated database with new visit: ${historyItem.url}`);
+    await classifyURLAndTitle(historyItem.url, historyItem.title);
+    console.log(`Updated database with new visit & classification: ${historyItem.url}`);
   } catch (error) {
     console.error('Error handling history event:', error);
   }
@@ -106,12 +107,12 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
       );
     return true;
+
   } else if (message.action === "ENABLE_ML") {
-    // drive your AI engine setup from the popup
-    ensureEngineIsReady(/* no tabId, or pass sender.tab.id if you want progress */)
+    ensureEngineIsReady()
       .then(() => sendResponse({ success: true }))
       .catch((err) => sendResponse({ success: false, error: err.message }));
-    return true; // async
+    return true; 
   }
 });
 

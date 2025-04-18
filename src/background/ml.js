@@ -20,17 +20,18 @@ const displayMessage = async (tabId, message) => {
   });
 };
 
-async function ensureEngineIsReady(tabId) {
-  // grab ml api once
-  const mlApi = browser.trial?.ml;
-  if (!mlApi?.createEngine) {
-    console.error("AI runtime unavailable");
-    return false;
+async function waitForMlApi() {
+  while (typeof browser.trial?.ml?.createEngine !== 'function') {
+    console.warn('️ ML runtime not yet available, retrying...');
+    await new Promise((r) => setTimeout(r, 1000));
   }
+}
 
-  const { engineCreated } = await browser.storage.session.get({
-    engineCreated: false,
-  });
+async function ensureEngineIsReady(tabId) {
+  await waitForMlApi();
+
+  const mlApi = browser.trial.ml;
+  const { engineCreated } = await browser.storage.session.get({ engineCreated: false });
   if (engineCreated) return true;
 
   const hasTrial = await browser.permissions.contains({

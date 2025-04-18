@@ -102,7 +102,7 @@ async function classifyURLAndTitle(url, title, tabId) {
       args: [textToClassify],
       options: { top_k: null },
     });
-    console.log("Classification result:", result);
+    // console.log("Classification result:", result);
 
     const categoriesToSave = result
       .filter(r => r.score >= THRESHOLD)

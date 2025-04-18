@@ -117,7 +117,7 @@ async function storeVisitDetails(url, visits) {
     });
 
     transaction.oncomplete = () => {
-      console.log(`Stored ${successCount} visit details for ${url}`);
+      // console.log(`Stored ${successCount} visit details for ${url}`);
     };
 
     transaction.onerror = (event) => {

@@ -58,7 +58,10 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({
             success: true,
             data: result.data,
-            stats: result.stats,
+            stats: {
+              ...result.stats,
+              totalTime: result.totalTime
+            }
           }),
         )
         .catch((error) =>
@@ -67,7 +70,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
             error: error.toString(),
           }),
         );
-      return true; // Required for asynchronous sendResponse
+      return true; // keep channel open for async
     }
     case 'getVisits': {
       getVisitDetailsFromDB(message.url)

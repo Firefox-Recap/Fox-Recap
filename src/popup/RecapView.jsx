@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { getRecapData } from '../sdk/firefoxrecapSDK';
+import { getRecapData, getVisitDetails } from '../sdk/firefoxrecapSDK';
 
 const RecapView = ({ timeRange, onBack }) => {
   const [recap, setRecap] = useState(null);
@@ -11,6 +11,9 @@ const RecapView = ({ timeRange, onBack }) => {
       try {
         const data = await getRecapData(timeRange);
         setRecap(data);
+
+        const visits = await getVisitDetails(data.topDomains[0].url);
+        console.log('visit details', visits);
       } catch (e) {
         setError(e.message);
       }

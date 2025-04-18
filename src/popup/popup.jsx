@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import HomeView from './HomeView';
-import RecapView from './RecapView';
+import SlideShow from './SlideShow';
+import { getTopVisitedDomains } from '../sdk/firefoxrecapSDK';
 
 const Popup = () => {
   const [view, setView] = useState('home');
   const [timeRange, setTimeRange] = useState(null);
+  const [topDomains, setTopDomains] = useState([]);
 
-  const handleTimeRangeSelect = (range) => {
-    // only now we switch to recap, RecapView will fetch GET_RECAP_DATA (and top‐visited domains)
+  const handleTimeRangeSelect = async (range) => {
     setTimeRange(range);
+    const domains = await getTopVisitedDomains(range);
+    setTopDomains(domains);
     setView('recap');
   };
 
@@ -18,7 +21,11 @@ const Popup = () => {
       {view === 'home' ? (
         <HomeView onSelectTimeRange={handleTimeRangeSelect} />
       ) : (
-        <RecapView timeRange={timeRange} onBack={() => setView('home')} />
+        <SlideShow
+          setView={setView}
+          timeRange={timeRange}
+          topDomains={topDomains}
+        />
       )}
     </div>
   );

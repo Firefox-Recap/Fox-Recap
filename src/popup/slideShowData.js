@@ -1,4 +1,9 @@
 import promptsData from "./prompts.json";
+import {
+  getHistory,
+  getTopVisitedDomains,
+  getTopCategories
+} from "../sdk/firefoxrecapSDK";
 
 const backgroundVideos = [
   "/assets/videos/2.mp4",
@@ -37,20 +42,32 @@ const getRandomPrompt = (timeRange, type) => {
   return prompts[index].text.replace("[x]", timeRangeMap[timeRange]);
 };
 
-export const getTopVisitedPrompt = (topDomains) => {
-  if (!topDomains || topDomains.length < 3) return "Top sites data is not available.";
-  const template = promptsData.prompts.top3Websites[0].text;
-  return template
-    .replace("[Website 1]", topDomains[0].domain)
-    .replace("[Website 2]", topDomains[1].domain)
-    .replace("[Website 3]", topDomains[2].domain);
-};
+export const getData = async (timeRange) => {
+  // 1) fetch raw history + stats
+  const { data: history, stats: historyStats } = await getHistory(timeRange);
 
-export const getData = async (timeRange, topDomains, visits, categories) => {
+  // 2) fetch top‑visited domains
+  const topDomains = await getTopVisitedDomains(timeRange);
+
+  // 3) fetch top categories
+  const topCategoriesData = await getTopCategories(timeRange);
+  console.log("Top categories data", topCategoriesData);
+  console.log(historyStats)
   const metrics = {
-    totalWebsites: 42,
-    totalDurationMs: 123400,
-    topCategories: ["News", "Productivity", "Education"]
+    // count unique URLs in this slice
+    totalWebsites: new Set(history.map(h => h.url)).size,
+    totalDurationMs: (historyStats.totalTime || 0) * 1000,
+    topCategories: topCategoriesData.map(c => c.category)
+  };
+
+  // convenience prompt builder still works
+  const getTopVisitedPrompt = (td) => {
+    if (td.length < 3) return "Top sites data is not available.";
+    const tpl = promptsData.prompts.top3Websites[0].text;
+    return tpl
+      .replace("[Website 1]", td[0].url || td[0].domain)
+      .replace("[Website 2]", td[1].url || td[1].domain)
+      .replace("[Website 3]", td[2].url || td[2].domain);
   };
 
   return [
@@ -102,7 +119,7 @@ export const getData = async (timeRange, topDomains, visits, categories) => {
       prompt: "",
       metric: true,
       metric_type: "topCategoriesChart",
-      chartData: [],
+      chartData: topCategoriesData.map(c => ({ category: c.category, duration: c.count }))
     },
     {
       id: "slide8",

@@ -1,29 +1,22 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getData } from "./slideShowData";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
+import TopCategoriesChart from "./TopCategoriesChartSlide";
 import "./popup.css";
 
-const SlideShow = ({ setView, timeRange, topDomains }) => {
+const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const videoRef = useRef(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const visits = [];
-        const categories = [];
-        const data = await getData(timeRange, topDomains, visits, categories);
-        setSlides(data);
-      } catch (err) {
-        console.error("❌ Failed to load slides:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [timeRange, topDomains]);
+    (async () => {
+      const data = await getData(timeRange);
+      setSlides(data);
+      setLoading(false);
+    })();
+  }, [timeRange]);
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.load();
@@ -84,6 +77,12 @@ const SlideShow = ({ setView, timeRange, topDomains }) => {
       <button onClick={handlePrevious} disabled={index === 0} style={{ position: "absolute", left: "10px", top: "45%", background: "transparent", border: "none", cursor: "pointer", zIndex: 10 }}>
         <FaArrowLeft size={32} color="#fff" />
       </button>
+
+      {currentSlide.metric_type === "topCategoriesChart" && (
+        <div className="chart-container">
+          <TopCategoriesChart data={currentSlide.chartData} />
+        </div>
+      )}
     </div>
   );
 };

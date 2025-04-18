@@ -7,10 +7,8 @@ import {
   storeHistoryItems,
   storeVisitDetails,
 } from './datahandlers.js';
-
 import { classifyURLAndTitle, THRESHOLD, ensureEngineIsReady } from './ml.js';
 
-// Intialize the database
 (async () => {
   try {
     await initDB();
@@ -20,6 +18,7 @@ import { classifyURLAndTitle, THRESHOLD, ensureEngineIsReady } from './ml.js';
   }
 })();
 
+// util function
 function isValidURL(urlString) {
   try {
     new URL(urlString);
@@ -92,9 +91,7 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }),
       );
     return true;
-  } 
-  
-  else if (message.action === 'GET_TOP_VISITED_DOMAINS') {
+  } else if (message.action === 'GET_TOP_VISITED_DOMAINS') {
     getMostVisitedFromDB(message.days || 30, message.limit || 10)
       .then((result) => 
         sendResponse({
@@ -109,6 +106,12 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
         })
       );
     return true;
+  } else if (message.action === "ENABLE_ML") {
+    // drive your AI engine setup from the popup
+    ensureEngineIsReady(/* no tabId, or pass sender.tab.id if you want progress */)
+      .then(() => sendResponse({ success: true }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
+    return true; // async
   }
 });
 
@@ -130,7 +133,7 @@ async function fetchInitialHistory() {
 initDB()
   .then(() => {
     console.log('Starting initial history fetch...');
-    return fetchAndStoreHistory(1); // Fetch past 30 days by default
+    return fetchAndStoreHistory(1); // etch past 30 days by default
   })
   .then(() => {
     console.log('Initial history fetch completed');

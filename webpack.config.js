@@ -37,7 +37,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/manifest.json', to: '' },
-        { from: 'src/popup/*.html', to: '' }
+        { from: 'src/popup/popup.html', to: 'popup.html' }
       ]
     })
   ],

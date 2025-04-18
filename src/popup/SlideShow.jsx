@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { getData } from "./slideShowData";
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
-import AnalyticsChartSlide from "./AnalyticsChartSlide.jsx";
-import TopCategoriesChartSlide from "./TopCategoriesChartSlide.jsx";
-import PeakDaysRings from "./PeakDaysRings.jsx";
-import JourneyTimelineSlide from "./JourneyTimelineSlide.jsx";
 import "./popup.css";
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {

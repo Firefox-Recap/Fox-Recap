@@ -8,6 +8,9 @@ import {
   storeVisitDetails,
 } from './datahandlers.js';
 
+import { classifyURLAndTitle, THRESHOLD, ensureEngineIsReady } from './ml.js';
+
+// Intialize the database
 (async () => {
   try {
     await initDB();
@@ -16,6 +19,15 @@ import {
     console.error('Failed to initialize IndexedDB:', error);
   }
 })();
+
+function isValidURL(urlString) {
+  try {
+    new URL(urlString);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // listeners
 // Listen for new history items and add them to the database
@@ -100,11 +112,25 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
+async function fetchInitialHistory() {
+  console.log('Starting initial history fetch...');
+  const historyVisits = await getHistoryFromDB();
+
+  for (const visit of historyVisits) {
+    const url = visit.url;
+    if (!isValidURL(url)) {
+      console.warn('Skipping invalid URL:', url);
+      continue;
+    }
+    const parsed = new URL(url);
+  }
+}
+
 // intialization
 initDB()
   .then(() => {
     console.log('Starting initial history fetch...');
-    return fetchAndStoreHistory(30); // Fetch past 30 days by default
+    return fetchAndStoreHistory(1); // Fetch past 30 days by default
   })
   .then(() => {
     console.log('Initial history fetch completed');

@@ -32,3 +32,12 @@ export function extractDomain(url) {
     return '';
   }
 }
+
+function isValidURL(urlString) {
+  try {
+    new URL(urlString);
+    return true;
+  } catch {
+    return false;
+  }
+}

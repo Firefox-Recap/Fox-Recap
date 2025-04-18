@@ -8,7 +8,12 @@
     "storage",
     "tabs",
     "webNavigation",
-    "downloads"
+    "downloads",
+    "scripting",
+    "https://big.oisd.nl/*"
+  ],
+  "optional_permissions": [
+    "trialML"
   ],
   "background": {
     "scripts": [

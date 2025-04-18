@@ -51,3 +51,13 @@ export function initDB() {
   });
 }
 
+export function saveCategories(url, categories) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('categories', 'readwrite');
+    const store = tx.objectStore('categories');
+    const req = store.put({ url, categories });
+    req.onsuccess = () => resolve();
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+

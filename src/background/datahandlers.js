@@ -1,6 +1,8 @@
-import { db } from './db.js';            
+import { db } from './db.js';
 import { extractDomain } from './util.js';
-import {shouldBlockDomain} from './blacklist.js';
+import { shouldBlockDomain } from './blacklist.js';
+import { saveCategories } from './db.js';
+import { classifyURLAndTitle, THRESHOLD } from './ml.js';
 
 // Function to store history items in the database from the history api
 async function storeHistoryItems(items) {
@@ -87,29 +89,39 @@ async function storeVisitDetails(url, visits) {
   });
 }
 
-// Function to fetch history from the API and store in DB this makes sure that we dont constantly call the api ever time and we can store whatever information we get in this
+// Function to fetch history from the API, classify, and store in DB
 export async function fetchAndStoreHistory(days = 30) {
   const startTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
   try {
     const historyItems = await browser.history.search({
       text: '',
-      startTime: startTime,
+      startTime,
       maxResults: 999999,
     });
     await storeHistoryItems(historyItems);
 
-    // Fetch and store visit details for each URL
     for (const item of historyItems) {
-      const visits = await browser.history.getVisits({url: item.url});
+      // 1) store visit details
+      const visits = await browser.history.getVisits({ url: item.url });
       await storeVisitDetails(item.url, visits);
+
+      // 2) classify + filter by THRESHOLD
+      const result = await classifyURLAndTitle(item.url, item.title, /* no tab */);
+      if (result) {
+        const labels = result
+          .filter(r => r.score >= THRESHOLD)
+          .map(r => r.label);
+        // 3) save into IndexedDB
+        await saveCategories(item.url, labels);
+      }
     }
 
     console.log(
-      `Successfully fetched and stored history for the past ${days} days`,
+      `Successfully fetched, classified & stored history for ${days} days`
     );
   } catch (error) {
-    console.error('Error fetching or storing history:', error);
+    console.error('Error fetching/storing/classifying history:', error);
   }
 }
 

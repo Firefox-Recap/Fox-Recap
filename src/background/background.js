@@ -169,6 +169,3 @@ async function fetchInitialHistory() {
     const parsed = new URL(url);
   }
 }
-
-// intialization
-initDB()

@@ -4,6 +4,22 @@ import { shouldBlockDomain } from './blacklist.js';
 import { classifyURLAndTitle, THRESHOLD } from './ml.js';
 import { getCategoryFromDB, saveCategories } from './db.js';
 
+const historyCache = {};
+
+/** Classify & save categories only if none exist yet */
+async function classifyIfNeeded(url, title) {
+  const existing = await getCategoryFromDB(url);
+  if (!existing) {
+    const result = await classifyURLAndTitle(url, title);
+    if (result) {
+      const labels = result
+        .filter(r => r.score >= THRESHOLD)
+        .map(r => r.label);
+      await saveCategories(url, labels.length ? labels : ['Uncategorized']);
+    }
+  }
+}
+
 /**
  * Read every saved categories entry,
  * count how many times each label appears,
@@ -56,10 +72,8 @@ async function storeHistoryItems(items) {
       req.onsuccess = async () => {
         successCount++;
         try {
-          const existing = await getCategoryFromDB(item.url);
-          if (!existing) {
-            await classifyURLAndTitle(item.url, item.title);
-          }
+          // centralized classification
+          await classifyIfNeeded(item.url, item.title);
         } catch (err) {
           console.error('Classification error:', err);
         }
@@ -129,25 +143,13 @@ async function fetchAndStoreHistory(days = 30) {
     // store visitDetails
     const visits = await browser.history.getVisits({ url: item.url });
     await storeVisitDetails(item.url, visits);
-
-    // **only classify if we don't already have categories for this URL**
-    const existing = await getCategoryFromDB(item.url);
-    if (!existing) {
-      const result = await classifyURLAndTitle(item.url, item.title, /* no tab */);
-      if (result) {
-        const labels = result
-          .filter(r => r.score >= THRESHOLD)
-          .map(r => r.label);
-        await saveCategories(item.url, labels.length ? labels : ['Uncategorized']);
-      }
-    }
   }
 
   console.log(`fetchAndStoreHistory(${days}) complete`);
 }
 
 // Modified getHistoryFromDB to include timing information based on the ajusted timestamp
-async function getHistoryFromDB(days) {
+async function _getHistoryFromDB(days) {
   const startTime = performance.now();
   const startDbTime = performance.now();
   const stats = {dbTime: 0, apiTime: 0, fromCache: true};
@@ -217,6 +219,13 @@ async function getHistoryFromDB(days) {
     console.error('Error in getHistoryFromDB:', error);
     throw error;
   }
+}
+
+export async function getHistoryFromDB(days) {
+  if (historyCache[days]) return historyCache[days];
+  const result = await _getHistoryFromDB(days);
+  historyCache[days] = result;
+  return result;
 }
 
 // Similarly modify getMostVisitedFromDB to include timing metrics

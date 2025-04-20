@@ -5,7 +5,7 @@ async function waitForMlApi() {
   }
 }
 
-async function ensureEngineIsReady() {
+export async function ensureEngineIsReady() {
   await waitForMlApi();
   const mlApi = browser.trial.ml;
 

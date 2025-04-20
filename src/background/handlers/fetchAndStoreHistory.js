@@ -3,9 +3,8 @@ import { db } from '../initdb.js';
 import { shouldBlockDomain } from '../services/blacklist.js';
 import {
   storeHistoryItems,
-  storeVisitDetails,
 } from '../services/db.js';
-import { classifyURLAndTitle } from '../services/ml.js';
+import { ensureEngineIsReady, classifyURLAndTitle } from '../services/ml.js';
 
 export async function fetchAndStoreHistory(days) {
   const now = Date.now();
@@ -29,31 +28,47 @@ export async function fetchAndStoreHistory(days) {
   });
 
   const threshold = 0.5;
+  await ensureEngineIsReady();
 
-  // 3) fetch & store visits + categories in parallel
   const limit = pLimit(5);
-  const tasks = newItems.map((item) =>
+  const tasks = newItems.map(item =>
     limit(async () => {
-      try {
-        const visits = await browser.history.getVisits({ url: item.url });
-        await storeVisitDetails(item.url, visits);
-
-        const title = item.title ?? '';
-        const categories = await classifyURLAndTitle(item.url, title, threshold);
-
-        await db.transaction('rw', db.categories, () => {
-          return db.categories.put({
-            url: item.url,
-            categories,
-            lastVisitTime: item.lastVisitTime
-          });
-        });
-      } catch (err) {
-        console.error(`Error processing ${item.url}:`, err);
-      }
+      const visits = await browser.history.getVisits({ url: item.url });
+      const categories = await classifyURLAndTitle(item.url, item.title ?? '', threshold);
+      return { item, visits, categories };
     })
   );
-  await Promise.all(tasks);
+  const results = await Promise.allSettled(tasks);
+
+  const visitDetailsBulk = [];
+  const categoriesBulk = [];
+  for (const res of results) {
+    if (res.status === 'fulfilled') {
+      const { item, visits, categories } = res.value;
+      for (const v of visits) {
+        visitDetailsBulk.push({
+          visitId:            v.visitId,
+          url:                item.url,
+          visitTime:          v.visitTime,
+          referringVisitId:   v.referringVisitId,
+          transition:         v.transition,
+        });
+      }
+      categoriesBulk.push({
+        url:           item.url,
+        categories,
+        lastVisitTime: item.lastVisitTime,
+      });
+    } else {
+      console.error('Error processing item:', res.reason);
+    }
+  }
+
+  await db.transaction('rw', db.visitDetails, db.categories, async () => {
+    if (visitDetailsBulk.length) await db.visitDetails.bulkPut(visitDetailsBulk);
+    if (categoriesBulk.length)  await db.categories.bulkPut(categoriesBulk);
+  });
+
   console.log(`Completed processing ${newItems.length} new history items`);
-  return newItems.length;  
+  return newItems.length;
 }

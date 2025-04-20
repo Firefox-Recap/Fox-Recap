@@ -5,11 +5,6 @@ async function waitForMlApi() {
   }
 }
 
-/**
- * Ensure the ML engine is initialized exactly once.
- * Requests the "trialML" permission if needed, then creates the engine.
- * @returns {Promise<boolean>} true if engine is ready
- */
 async function ensureEngineIsReady() {
   await waitForMlApi();
   const mlApi = browser.trial.ml;

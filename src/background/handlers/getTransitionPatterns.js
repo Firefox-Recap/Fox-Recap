@@ -2,48 +2,31 @@ import { db } from '../initdb.js';
 
 export async function getTransitionPatterns(days) {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    const tx = db.transaction(['visitDetails', 'categories'], 'readonly');
-    const visits = tx.objectStore('visitDetails').index('visitTime');
-    const categories = tx.objectStore('categories');
 
-    // Get visit data
-    const entries = await new Promise((resolve, reject) => {
-        const req = visits.getAll(IDBKeyRange.lowerBound(cutoff));
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    //fetch & sort visits in one shot via the visitTime index
+    const entries = await db.visitDetails
+        .where('visitTime')
+        .aboveOrEqual(cutoff)
+        .sortBy('visitTime');
 
-    // the this shouldnt show transitions between sites that have the same domain
-
-
-
-    // Analyze transitions between sites
+    //build transitions, skipping same domain/root
     const transitions = new Map();
     let prevUrl = null;
-
-    entries.sort((a, b) => a.visitTime - b.visitTime);
-    
-    for (const visit of entries) {
+    for (const { url } of entries) {
         if (prevUrl) {
-            const prevDomain = new URL(prevUrl).hostname;
-            const currDomain = new URL(visit.url).hostname;
-            if (prevDomain === currDomain) {
-                prevUrl = visit.url;
-                continue;
+            const prevDom = new URL(prevUrl).hostname;
+            const currDom = new URL(url).hostname;
+            const [p0] = prevDom.split('.');
+            const [c0] = currDom.split('.');
+            if (prevDom !== currDom && p0 !== c0) {
+                const key = `${prevUrl}|${url}`;
+                transitions.set(key, (transitions.get(key) || 0) + 1);
             }
-            const prevRoot = prevDomain.split('.')[0];
-            const currRoot = currDomain.split('.')[0];
-            if (prevRoot === currRoot) {
-                prevUrl = visit.url;
-                continue;
-            }
-            const key = `${prevUrl}|${visit.url}`;
-            transitions.set(key, (transitions.get(key) || 0) + 1);
         }
-        prevUrl = visit.url;
+        prevUrl = url;
     }
 
-    // Find common sequences
+    //pick top 10 patterns
     const patterns = Array.from(transitions.entries())
         .map(([pair, count]) => {
             const [from, to] = pair.split('|');
@@ -55,9 +38,9 @@ export async function getTransitionPatterns(days) {
     return {
         patterns,
         summary: {
-            totalTransitions: entries.length - 1,
+            totalTransitions: Math.max(0, entries.length - 1),
             uniquePatterns: transitions.size,
-            topPattern: patterns[0]
+            topPattern: patterns[0] || null
         }
     };
 }

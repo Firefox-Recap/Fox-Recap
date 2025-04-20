@@ -29,7 +29,7 @@ document.getElementById('btnVisited').addEventListener('click', async () => {
 document.getElementById('btnLabels').addEventListener('click', async () => {
   const days = getDays();
   try {
-    const data = await callBg('getTotalCategoryCount', days);
+    const data = await callBg('getLabelCounts', days);
     render(data);
   } catch (e) {
     render({ error: e.message });
@@ -96,7 +96,6 @@ document.getElementById('btnTimeSpent').addEventListener('click', async () => {
   }
 });
 
-// Recency Frequency
 document.getElementById('btnRecencyFreq').addEventListener('click', async () => {
   const days = getDays();
   try {
@@ -107,13 +106,3 @@ document.getElementById('btnRecencyFreq').addEventListener('click', async () => 
   }
 });
 
-// Typed URL Ratio
-document.getElementById('btnTypedRatio').addEventListener('click', async () => {
-  const days = getDays();
-  try {
-    const data = await callBg('getTypedUrlRatio', days);
-    render(data);
-  } catch (e) {
-    render({ error: e.message });
-  }
-});

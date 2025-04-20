@@ -1,54 +1,45 @@
 import { db } from '../initdb.js';
 
-export async function getTimeSpentPerSite(days, limit) {
+export async function getTimeSpentPerSite(days, limit, SESSION_THRESHOLD = 30 * 60 * 1000) {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    const tx = db.transaction('visitDetails', 'readonly');
-    const index = tx.objectStore('visitDetails').index('visitTime');
 
-    const entries = await new Promise((resolve, reject) => {
-        const req = index.getAll(IDBKeyRange.lowerBound(cutoff));
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    //grab all visits since cutoff
+    const entries = await db.visitDetails
+        .where('visitTime')
+        .aboveOrEqual(cutoff)
+        .toArray();
 
-    // Sort entries by URL and time
-    const visitsByUrl = new Map();
-    entries.forEach(visit => {
-        if (!visitsByUrl.has(visit.url)) {
-            visitsByUrl.set(visit.url, []);
+    // group & accumulate in one pass
+    const stats = entries
+      // ensure grouping runs on visits sorted by url & time
+      .sort((a, b) => a.url.localeCompare(b.url) || a.visitTime - b.visitTime)
+      .reduce((map, { url, visitTime }) => {
+        let st = map.get(url);
+        if (!st) {
+          st = { totalTime: 0, lastTime: visitTime, sessions: 1, count: 1 };
+          map.set(url, st);
+          return map;
         }
-        visitsByUrl.get(visit.url).push(visit.visitTime);
-    });
-
-    // Calculate time spent per site
-    const timeSpent = [];
-    const SESSION_THRESHOLD = 30 * 60 * 1000; // 30 minutes
-
-    for (const [url, times] of visitsByUrl) {
-        times.sort((a, b) => a - b);
-        let totalTime = 0;
-        
-        // Calculate session durations
-        for (let i = 0; i < times.length - 1; i++) {
-            const gap = times[i + 1] - times[i];
-            if (gap < SESSION_THRESHOLD) {
-                totalTime += gap;
-            }
+        const gap = visitTime - st.lastTime;
+        if (gap < SESSION_THRESHOLD) {
+          st.totalTime += gap;
+        } else {
+          st.sessions++;
         }
+        st.lastTime = visitTime;
+        st.count++;
+        return map;
+      }, new Map());
 
-        timeSpent.push({
-            url,
-            timeSpent: totalTime,
-            visitCount: times.length,
-            averageSessionLength: Math.round(totalTime / times.length)
-        });
-    }
-
-    return timeSpent
-        .sort((a, b) => b.timeSpent - a.timeSpent)
-        .map(site => ({
-            ...site,
-            timeSpent: Math.round(site.timeSpent / 1000 / 60) // Convert to minutes
-        }))
-        .slice(0, limit);
+    //build result, convert ms > minutes, sort & cap
+    return Array.from(stats.entries())
+      .map(([url, { totalTime, sessions, count }]) => ({
+        url,
+        timeSpent: Math.round(totalTime / 1000 / 60),
+        visitCount: count,
+        averageSessionLength:
+          sessions > 0 ? Math.round((totalTime / sessions) / 1000 / 60) : 0
+      }))
+      .sort((a, b) => b.timeSpent - a.timeSpent)
+      .slice(0, limit);
 }

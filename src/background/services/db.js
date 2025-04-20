@@ -1,82 +1,47 @@
-import { db } from '../initdb.js'; 
+import { db } from '../initdb.js';
 import { classifyURLAndTitle } from './ml.js';
 
-// database handlers this stores stuff in the database
-
-// stores the items from the history api into database
+// stores many history items in one bulk transaction
 export async function storeHistoryItems(items) {
   if (!items.length) return 0;
-
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('historyItems', 'readwrite');
-    const store = tx.objectStore('historyItems');
-    let successCount = 0;
-
-    items.forEach((item) => {
-      const req = store.put({
-        url: item.url,
-        title: item.title,
-        lastVisitTime: item.lastVisitTime,
-        visitCount: item.visitCount,
-        typedCount: item.typedCount,
-      });
-      req.onsuccess = () => {
-        successCount++;
-        if (successCount === items.length) {
-          resolve(successCount);
-        }
-      };
-      req.onerror = (e) =>
-        console.error('Error storing history item:', e.target.error);
-    });
-
-    tx.onerror = (e) => reject(e.target.error);
+  const toPut = items.map(i => ({
+    url: i.url,
+    title: i.title,
+    lastVisitTime: i.lastVisitTime,
+    visitCount: i.visitCount,
+    typedCount: i.typedCount
+  }));
+  await db.transaction('rw', db.historyItems, async () => {
+    await db.historyItems.bulkPut(toPut);
   });
+  return toPut.length;
 }
 
-// stores the visit details for each url
+// stores many visit details in one bulk transaction
 export async function storeVisitDetails(url, visits) {
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('visitDetails', 'readwrite');
-    const store = tx.objectStore('visitDetails');
-    let successCount = 0;
-
-    visits.forEach((v) => {
-      const req = store.put({
-        visitId: v.visitId,
-        url,
-        visitTime: v.visitTime,
-        referringVisitId: v.referringVisitId,
-        transition: v.transition,
-      });
-      req.onsuccess = () => {
-        successCount++;
-        if (successCount === visits.length) {
-          resolve(successCount);
-        }
-      };
-      req.onerror = (e) =>
-        console.error('Error storing visit detail:', e.target.error);
-    });
-
-    tx.onerror = (e) => reject(e.target.error);
+  if (!visits.length) return 0;
+  const toPut = visits.map(v => ({
+    visitId: v.visitId,
+    url,
+    visitTime: v.visitTime,
+    referringVisitId: v.referringVisitId,
+    transition: v.transition
+  }));
+  await db.transaction('rw', db.visitDetails, async () => {
+    await db.visitDetails.bulkPut(toPut);
   });
+  return toPut.length;
 }
 
-// stores the classified categories for each url + title
+// single‐record write—no need for manual Promise wrapping
 export async function storeCategories(url, title, lastVisitTime) {
   try {
     const categories = await classifyURLAndTitle(url, title, 0.5);
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction('categories', 'readwrite');
-      const store = tx.objectStore('categories');
-      // include lastVisitTime so we can filter later
-      const req = store.put({ url, categories, lastVisitTime });
-      req.onsuccess = () => resolve();
-      req.onerror = (e) => reject(e.target.error);
+    await db.transaction('rw', db.categories, async () => {
+      await db.categories.put({ url, categories, lastVisitTime });
     });
-  } catch (error) {
-    console.error('Error classifying or storing categories:', error);
-    return Promise.reject(error);
+  } catch (err) {
+    console.error('Error classifying or storing categories:', err);
+    throw err;
   }
 }

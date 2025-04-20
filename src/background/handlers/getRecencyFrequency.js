@@ -1,34 +1,33 @@
 import { db } from '../initdb.js';
-// this needs to accept a limit for the output and cutoff date is days
-export async function getRecencyFrequency(days, limit = 5) {
-  const now = Date.now();
-  const cutoff = now - days * 24 * 60 * 60 * 1000;
-  const tx = db.transaction('visitDetails', 'readonly');
-  const idx = tx.objectStore('visitDetails').index('visitTime');
-  const visits = await new Promise((res, rej) => {
-    const req = idx.getAll(IDBKeyRange.lowerBound(cutoff));
-    req.onsuccess = () => res(req.result);
-    req.onerror = () => rej(req.error);
-  });
 
-  // aggregate per‑domain
-  const stats = visits.reduce((acc, { url, visitTime }) => {
+export async function getRecencyFrequency(days, limit = 5) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const cutoff = now - days * msPerDay;
+
+  // fetch only visits on or after cutoff using the visitTime index
+  const visits = await db.visitDetails
+    .where('visitTime')
+    .aboveOrEqual(cutoff)
+    .toArray();
+
+  // aggregate counts and lastVisit per domain
+  const stats = new Map();
+  for (const { url, visitTime } of visits) {
     let domain;
     try {
       domain = new URL(url).hostname;
     } catch {
-      return acc;
+      continue;
     }
-    const s = acc[domain] || { count: 0, lastVisit: 0 };
-    s.count++;
-    s.lastVisit = Math.max(s.lastVisit, visitTime);
-    acc[domain] = s;
-    return acc;
-  }, {});
+    const entry = stats.get(domain) || { count: 0, lastVisit: 0 };
+    entry.count++;
+    if (visitTime > entry.lastVisit) entry.lastVisit = visitTime;
+    stats.set(domain, entry);
+  }
 
-  // compute score = freq / (1 + days_since_last_visit)
-  const msPerDay = 24 * 60 * 60 * 1000;
-  const result = Object.entries(stats)
+  // compute score, sort and limit
+  const result = [...stats.entries()]
     .map(([domain, { count, lastVisit }]) => {
       const daysSince = (now - lastVisit) / msPerDay;
       const score = count / (1 + daysSince);

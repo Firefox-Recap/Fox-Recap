@@ -1,30 +1,40 @@
-import { db, initDB } from '../initdb.js';
+import {db} from '../initdb.js';
 
-export async function getLabelCounts(day) {
-  const cutoff = Date.now() - day * 24 * 60 * 60 * 1000;
-  const store = db.transaction('categories', 'readonly')
-                  .objectStore('categories');
-  const all = await new Promise((res, rej) => {
-    const req = store.getAll();
-    req.onerror = () => rej(req.error);
-    req.onsuccess = () => res(req.result);
-  });
+// Map scores to labels
+const CATEGORIES = [
+  'News',
+  'Entertainment',
+  'Shop',
+  'Chat',
+  'Education',
+  'Government',
+  'Health',
+  'Technology',
+  'Work',
+  'Travel',
+  'Uncategorized',
+];
 
-  const labelCounts = {};
+export async function getLabelCounts(days) {
+  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
 
-  // only include entries within the last `day` days
-  all
-    .filter(entry => entry.lastVisitTime >= cutoff)
-    .forEach(({ categories }) => {
-      const labels = (categories || [])
-        .map(cat => typeof cat === 'string' ? cat : cat?.label)
-        .filter(Boolean);
-      labels.forEach(label => {
-        labelCounts[label] = (labelCounts[label] || 0) + 1;
-      });
+  // only load categories with lastVisitTime ≥ cutoff
+  const records = await db.categories
+    .where('lastVisitTime')
+    .aboveOrEqual(cutoff)
+    .toArray();
+
+  const labelCounts = records.reduce((acc, { categories }) => {
+    ;(categories || []).forEach(cat => {
+      const label = typeof cat === 'string' ? cat : cat?.label;
+      if (label) acc[label] = (acc[label] || 0) + 1;
     });
+    return acc;
+  }, {});
 
-  return Object
-    .entries(labelCounts)
-    .map(([label, count]) => ({ categories: [label], count }));
+  // Ensure every defined category appears, even if count is 0
+  return CATEGORIES.map(label => ({
+    categories: [label],
+    count: labelCounts[label] || 0
+  }));
 }

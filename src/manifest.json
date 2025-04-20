@@ -9,7 +9,6 @@
     "tabs",
     "webNavigation",
     "downloads",
-    "scripting",
     "https://big.oisd.nl/*"
   ],
   "optional_permissions": [

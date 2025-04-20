@@ -5,14 +5,15 @@ const CopyWebpackPlugin = require('copy-webpack-plugin');
 module.exports = {
   entry: {
     background: './src/background/background.js',
-    popup:      './src/popup/popup.jsx'
+    popup: './src/popup/popup.js'
   },
   resolve: {
     extensions: ['.js', '.jsx']
   },
   output: {
     path:     path.resolve(__dirname, 'dist'),
-    filename: '[name].js'
+    filename: '[name].js',
+    devtoolModuleFilenameTemplate: '[resource-path]'
   },
   module: {
     rules: [
@@ -32,11 +33,10 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/manifest.json', to: '' },
-        { from: 'src/popup/popup.html', to: 'popup.html' },
-        { from: 'src/assets', to: 'assets' },
-        { from: 'src/popup/popup.css', to: 'popup.css' }
+        { from: 'src/popup/popup.html', to: '' },
       ]
     })
   ],
-  mode: process.env.NODE_ENV || 'development'
+  mode: process.env.NODE_ENV || 'development',
+  devtool: 'inline-source-map'
 };

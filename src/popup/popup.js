@@ -95,3 +95,25 @@ document.getElementById('btnTimeSpent').addEventListener('click', async () => {
     render({ error: e.message });
   }
 });
+
+// Recency Frequency
+document.getElementById('btnRecencyFreq').addEventListener('click', async () => {
+  const days = getDays();
+  try {
+    const data = await callBg('getRecencyFrequency', days);
+    render(data);
+  } catch (e) {
+    render({ error: e.message });
+  }
+});
+
+// Typed URL Ratio
+document.getElementById('btnTypedRatio').addEventListener('click', async () => {
+  const days = getDays();
+  try {
+    const data = await callBg('getTypedUrlRatio', days);
+    render(data);
+  } catch (e) {
+    render({ error: e.message });
+  }
+});

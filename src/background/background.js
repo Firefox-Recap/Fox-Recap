@@ -8,6 +8,8 @@ import { getDailyVisitCounts } from './handlers/getDailyVisitCounts.js';
 import { getCategoryTrends } from './handlers/getCatergoryTrends.js';
 import { getTransitionPatterns } from './handlers/getTransitionPattern.js';
 import { getTimeSpentPerSite } from './handlers/getTimeSpentPerSite.js';
+import { getRecencyFrequency } from './handlers/getRecencyFrequency.js';
+import { getTypedUrlRatio } from './handlers/getTypedUrlRatio.js';
 
 (async function init() {
   try {
@@ -27,9 +29,12 @@ window.getDailyVisitCounts = getDailyVisitCounts;
 window.getCategoryTrends = getCategoryTrends;
 window.getTransitionPatterns = getTransitionPatterns;
 window.getTimeSpentPerSite = getTimeSpentPerSite;
+window.getRecencyFrequency = getRecencyFrequency;
+window.getTypedUrlRatio = getTypedUrlRatio;
 
 (async () => {
   try {
+    // this has to be called otherwise we dont have a history database to look at start with 1 day then 7 then 30 this can be managed on frontend i think
     await fetchAndStoreHistory(7);
     console.log('fetchAndStoreHistory completed');
   } catch (err) {

@@ -31,7 +31,6 @@ export function initDB() {
         historyStore.createIndex('lastVisitTime', 'lastVisitTime', {
           unique: false,
         });
-        historyStore.createIndex('domain', 'domain', {unique: false});
       }
 
       // visitDetails store

@@ -13,6 +13,10 @@ export async function getTransitionPatterns(days) {
         req.onerror = () => reject(req.error);
     });
 
+    // the this shouldnt show transitions between sites that have the same domain
+
+
+
     // Analyze transitions between sites
     const transitions = new Map();
     let prevUrl = null;
@@ -21,6 +25,18 @@ export async function getTransitionPatterns(days) {
     
     for (const visit of entries) {
         if (prevUrl) {
+            const prevDomain = new URL(prevUrl).hostname;
+            const currDomain = new URL(visit.url).hostname;
+            if (prevDomain === currDomain) {
+                prevUrl = visit.url;
+                continue;
+            }
+            const prevRoot = prevDomain.split('.')[0];
+            const currRoot = currDomain.split('.')[0];
+            if (prevRoot === currRoot) {
+                prevUrl = visit.url;
+                continue;
+            }
             const key = `${prevUrl}|${visit.url}`;
             transitions.set(key, (transitions.get(key) || 0) + 1);
         }

@@ -28,13 +28,14 @@ export async function fetchAndStoreHistory(days) {
   });
 
   const threshold = 0.5;
+  // startup ML engine one time up front
   await ensureEngineIsReady();
 
   const limit = pLimit(5);
   const tasks = newItems.map(item =>
     limit(async () => {
-      const visits = await browser.history.getVisits({ url: item.url });
-      const categories = await classifyURLAndTitle(item.url, item.title ?? '', threshold);
+      const visits    = await browser.history.getVisits({ url: item.url });
+      const categories = await classifyURLAndTitle(item.url, item.title ?? '', threshold, true);
       return { item, visits, categories };
     })
   );

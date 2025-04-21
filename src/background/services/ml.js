@@ -44,8 +44,15 @@ export async function ensureEngineIsReady() {
  * Classify a URL + page title into one or more labels.
  * Returns the raw array of { label, score } from the ML model if it meets the threshold.
  */
-export async function classifyURLAndTitle(url, title, threshold) {
-  await ensureEngineIsReady();
+export async function classifyURLAndTitle(
+  url,
+  title,
+  threshold,
+  skipInit = false
+) {
+  if (!skipInit) {
+    await ensureEngineIsReady();
+  }
   const mlApi = browser.trial.ml;
   if (typeof mlApi.runEngine !== 'function') {
     throw new Error('ML runtime missing runEngine()');

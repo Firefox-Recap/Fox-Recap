@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './popup.css';
+<<<<<<< Updated upstream
 import promptsData from "./prompts.json";
 
+=======
+import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
+>>>>>>> Stashed changes
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
@@ -247,25 +251,48 @@ const SlideShow = ({ setView, timeRange }) => {
         ×
       </button>
 
-      <h1 style={{ color: "#fff", textAlign: "center", width: "100%", position: 'absolute', top: '50%' }}>
+      <h1 style={{ color: "#fff", textAlign: "center", width: "80%", position: 'absolute', left:'10%', top: '40%' }}>
         {slides.length > 0 && slides[index].prompt}
       </h1>
 
       <button
-        style={{ position: 'absolute', right: '10px', top: '300px' }}
+        style={{
+          position: 'absolute',
+          right: '10px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          background: 'transparent',
+          border: 'none',
+          color: 'white',
+          fontSize: '2rem',
+          cursor: 'pointer',
+          zIndex: 10
+        }}
         onClick={() => setIndex(index + 1)}
         disabled={index >= slides.length - 1}
       >
-        NEXT
+        <FaArrowRight />
       </button>
 
       <button
-        style={{ position: 'absolute', left: '10px', top: '300px' }}
+        style={{
+          position: 'absolute',
+          left: '10px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          background: 'transparent',
+          border: 'none',
+          color: 'white',
+          fontSize: '2rem',
+          cursor: 'pointer',
+          zIndex: 10
+        }}
         onClick={() => setIndex(index - 1)}
         disabled={index === 0}
       >
-        BACK
+        <FaArrowLeft />
       </button>
+
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import './popup.css'; // define .spinner-overlay & .spinner in here
 
+
 const HomeView = ({ onSelectTimeRange, loading }) => (
   <>
     <video autoPlay muted loop style={{
@@ -16,7 +17,7 @@ const HomeView = ({ onSelectTimeRange, loading }) => (
       <source src="assets/videos/1.mp4" type="video/mp4"/>
       Your browser does not support HTML5 video.
     </video>
-    <div style={{ position: 'relative', zIndex: 1 }}>
+    <div style={{ position: 'relative', zIndex: 1, marginTop:  "140px", marginLeft: "50px"}}>
       <h1 style={{ fontSize: "80px", padding: "0", margin: "0" }}>Firefox Recap</h1>
       <div className="btn-container">
         {['day', 'week', 'month'].map(r => (

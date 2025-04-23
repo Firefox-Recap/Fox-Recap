@@ -21,7 +21,7 @@ const SlideShow = ({ setView, timeRange }) => {
       slides.push({
         id: 'topSites',
         video: '/assets/videos/2.mp4',
-        prompt: `Your top sites: ${topSites.map(s => new URL(s.url).hostname).join(', ')}`,
+        prompt: `Your top sites: ${[...new Set(topSites.map(s => new URL(s.url).hostname))].join(', ')}`,
         metric: false,
         metric_type: null,
       });
@@ -31,7 +31,7 @@ const SlideShow = ({ setView, timeRange }) => {
       slides.push({
         id: 'timeSpent',
         video: '/assets/videos/3.mp4',
-        prompt: `Most time spent on: ${timeSpent.map(s => `${new URL(s.url).hostname} (${s.timeSpent} min)`).join(', ')}`,
+        prompt: `Most time spent on: ${[...new Set(timeSpent.map(s => new URL(s.url).hostname))].join(', ')}`,
         metric: false,
         metric_type: null,
       });

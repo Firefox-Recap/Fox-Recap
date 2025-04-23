@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './popup.css';
-<<<<<<< Updated upstream
+import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 
-=======
-import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
->>>>>>> Stashed changes
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);

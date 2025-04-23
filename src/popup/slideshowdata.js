@@ -6,12 +6,11 @@ const timeRangeMap = {
   month: 'this month'
 };
 
-// Helper to get a random intro prompt
-const getRandomIntroPrompt = (timeRange) => {
-  const introPrompts = promptsData.prompts.introRecap;
-  const rnd = Math.floor(Math.random() * introPrompts.length);
-  let prompt = introPrompts[rnd].text;
-  return prompt.replace('[x]', timeRangeMap[timeRange] || 'this period');
+const getRandomPrompt = (timeRange, type) => {
+  const prompts = promptsData.prompts[type] || [];
+  if (!prompts.length) return "";
+  const index = Math.floor(Math.random() * prompts.length);
+  return prompts[index].text.replace("[x]", timeRangeMap[timeRange]);
 };
 
 export const getTopVisitedPrompt = (topDomains) => {
@@ -37,7 +36,6 @@ const backgroundVideos = [
   '/assets/videos/8.mp4',
   '/assets/videos/9.mp4',
   '/assets/videos/10.mp4',
-  '/assets/videos/11.mp4',
 ];
 
 // Fisher-Yates shuffle algorithm to randomize the backgroundImages array
@@ -60,14 +58,14 @@ export const getData = (timeRange, topDomains) => [
   {
     id: 'slide1',
     video: shuffledVideos[0],
-    prompt: getRandomIntroPrompt(timeRange),
+    prompt: getRandomPrompt(timeRange, "introRecap"),
     metric: false,
     metric_type: null
   },
   {
     id: 'slide2',
     video: shuffledVideos[1],
-    prompt: 'Lets take a look of how many websites youve visited',
+    prompt: getRandomPrompt(timeRange, "introToTotalWebsites"),
     metric: false,
     metric_type: null
   },

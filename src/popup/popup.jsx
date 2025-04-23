@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { fetchAndStoreHistory } from './background/handlers/fetchAndStoreHistory.js';
 import HomeView from './HomeView';
 import SlideShow from './SlideShow';
 
@@ -12,6 +13,7 @@ const Popup = () => {
 
   const onSelectTimeRange = async (range) => {
     setLoading(true);
+    await fetchAndStoreHistory(1);
     const days = daysMap[range] || 1;
     const since = Date.now() - days*24*60*60*1000;
     // requires "history" permission in manifest

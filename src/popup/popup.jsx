@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { fetchAndStoreHistory } from './background/handlers/fetchAndStoreHistory.js';
+import { fetchAndStoreHistory } from '../background/handlers/fetchAndStoreHistory.js';
 import HomeView from './HomeView';
 import SlideShow from './SlideShow';
 

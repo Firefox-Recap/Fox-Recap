@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './popup.css';
+import promptsData from "./prompts.json";
+
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
@@ -13,6 +15,19 @@ const SlideShow = ({ setView, timeRange }) => {
     '/assets/videos/7.mp4', '/assets/videos/8.mp4', '/assets/videos/9.mp4',
     '/assets/videos/10.mp4'
   ];
+
+  const timeRangeMap = {
+    day: "today",
+    week: "this week",
+    month: "this month",
+  };
+
+  const getRandomPrompt = (timeRange, type) => {
+    const prompts = promptsData.prompts[type] || [];
+    if (!prompts.length) return "";
+    const index = Math.floor(Math.random() * prompts.length);
+    return prompts[index].text.replace("[x]", timeRangeMap[timeRange]);
+  };
 
   const shuffle = (array) => {
     let currentIndex = array.length, randomIndex;
@@ -38,7 +53,7 @@ const SlideShow = ({ setView, timeRange }) => {
       slides.push({
         id: 'intro',
         video: shuffledVideos[0],
-        prompt: `Here’s a recap of your browser activity for ${timeRange}.`,
+        prompt: getRandomPrompt(timeRange, "introRecap"),
         metric: false,
         metric_type: null
       });
@@ -46,7 +61,7 @@ const SlideShow = ({ setView, timeRange }) => {
       slides.push({
         id: 'totalVisits',
         video: shuffledVideos[1],
-        prompt: 'Let’s take a look at how many websites you’ve visited.',
+        prompt: getRandomPrompt(timeRange, "introToTotalWebsites"),
         metric: false,
         metric_type: null
       });
@@ -70,18 +85,25 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
-      const timeSpent = await bg.getTimeSpentPerSite(days, 5);
-      if (timeSpent.length) {
+      const timeSpent = await bg.getTimeSpentPerSite(days, 20);
+      const domainTimeMap = new Map();
+      
+      timeSpent.forEach(({ url, timeSpent }) => {
+        try {
+          const domain = new URL(url).hostname;
+          domainTimeMap.set(domain, (domainTimeMap.get(domain) || 0) + timeSpent);
+        } catch {}
+      });
+      
+      const topDomainsByTime = Array.from(domainTimeMap.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3);
+      
+      if (topDomainsByTime.length) {
         slides.push({
           id: 'timeSpent',
           video: shuffledVideos[3],
-          prompt: `Most time spent on: ${timeSpent.slice(0, 3).map(s => {
-            try {
-              return `${new URL(s.url).hostname} (${s.timeSpent} min)`;
-            } catch {
-              return null;
-            }
-          }).filter(Boolean).join(', ')}`,
+          prompt: `Most time spent on: ${topDomainsByTime.map(([domain, time]) => `${domain} (${time} min)`).join(', ')}`,
           metric: false,
           metric_type: null
         });
@@ -103,7 +125,7 @@ const SlideShow = ({ setView, timeRange }) => {
       slides.push({
         id: 'visitsPerHour',
         video: shuffledVideos[5],
-        prompt: `Most active at hour ${peakHour.hour}: ${peakHour.totalVisits} visits`,
+        prompt: `Your peak browsing time was between ${((peakHour.hour % 12) || 12)}${peakHour.hour < 12 ? 'am' : 'pm'} and ${((peakHour.hour + 1) % 12 || 12)}${peakHour.hour + 1 < 12 || peakHour.hour === 23 ? 'am' : 'pm'}, with ${peakHour.totalVisits} visits`,
         metric: false,
         metric_type: null
       });

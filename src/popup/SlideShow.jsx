@@ -108,6 +108,66 @@ const SlideShow = ({ setView, timeRange }) => {
         metric_type: null
       });
 
+      const labelCounts = await bg.getLabelCounts(days);
+      const topCategory = labelCounts.sort((a, b) => b.count - a.count)[0];
+      if (topCategory) {
+        slides.push({
+          id: 'topCategory',
+          video: shuffledVideos[6],
+          prompt: `Your top category: ${topCategory.categories[0]} (${topCategory.count} visits)`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
+      const coCounts = await bg.getCOCounts(days);
+      const topPair = Object.entries(coCounts).sort((a, b) => b[1] - a[1])[0];
+      if (topPair) {
+        slides.push({
+          id: 'categoryPair',
+          video: shuffledVideos[7],
+          prompt: `Most browsed pair: ${topPair[0]} (${topPair[1]} co-visits)`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
+      const dailyCounts = await bg.getDailyVisitCounts(days);
+      const mostVisitedDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
+      if (mostVisitedDay) {
+        slides.push({
+          id: 'busiestDay',
+          video: shuffledVideos[8],
+          prompt: `Your busiest day: ${mostVisitedDay.date} with ${mostVisitedDay.count} visits`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
+      const categoryTrends = await bg.getCategoryTrends(days);
+      const topTrend = categoryTrends.sort((a, b) => b.categories[0].count - a.categories[0].count)[0];
+      if (topTrend) {
+        slides.push({
+          id: 'trendingCategory',
+          video: shuffledVideos[9],
+          prompt: `Trending category on ${topTrend.date}: ${topTrend.categories[0].label}`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
+      const transitionPatterns = await bg.getTransitionPatterns(days);
+      const topTransition = transitionPatterns.summary.topPattern;
+      if (topTransition) {
+        slides.push({
+          id: 'topTransition',
+          video: shuffledVideos[10],
+          prompt: `Most common jump: ${new URL(topTransition.from).hostname} → ${new URL(topTransition.to).hostname}`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
       setSlides(slides);
       setLoading(false);
     };

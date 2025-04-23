@@ -7,6 +7,25 @@ const SlideShow = ({ setView, timeRange }) => {
   const [loading, setLoading] = useState(true);
   const videoRef = useRef(null);
 
+  const backgroundVideos = [
+    '/assets/videos/1.mp4', '/assets/videos/2.mp4', '/assets/videos/3.mp4',
+    '/assets/videos/4.mp4', '/assets/videos/5.mp4', '/assets/videos/6.mp4',
+    '/assets/videos/7.mp4', '/assets/videos/8.mp4', '/assets/videos/9.mp4',
+    '/assets/videos/10.mp4'
+  ];
+
+  const shuffle = (array) => {
+    let currentIndex = array.length, randomIndex;
+    while (currentIndex !== 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+    }
+    return array;
+  };
+
+  const shuffledVideos = shuffle([...backgroundVideos]);
+
   useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
@@ -16,45 +35,77 @@ const SlideShow = ({ setView, timeRange }) => {
 
       const slides = [];
 
-      // Slide 1: Top visited sites
-      const topSites = await bg.getMostVisitedSites(days, 3);
       slides.push({
-        id: 'topSites',
-        video: '/assets/videos/2.mp4',
-        prompt: `Your top sites: ${[...new Set(topSites.map(s => new URL(s.url).hostname))].join(', ')}`,
+        id: 'intro',
+        video: shuffledVideos[0],
+        prompt: `Here’s a recap of your browser activity for ${timeRange}.`,
         metric: false,
-        metric_type: null,
+        metric_type: null
       });
 
-      // Slide 2: Time spent per site
-      const timeSpent = await bg.getTimeSpentPerSite(days, 3);
       slides.push({
-        id: 'timeSpent',
-        video: '/assets/videos/3.mp4',
-        prompt: `Most time spent on: ${[...new Set(timeSpent.map(s => new URL(s.url).hostname))].join(', ')}`,
+        id: 'totalVisits',
+        video: shuffledVideos[1],
+        prompt: 'Let’s take a look at how many websites you’ve visited.',
         metric: false,
-        metric_type: null,
+        metric_type: null
       });
 
-      // Slide 3: Recency/Frequency
+      const topSitesRaw = await bg.getMostVisitedSites(days, 10);
+      const topDomains = [...new Set(topSitesRaw.map(s => {
+        try {
+          return new URL(s.url).hostname;
+        } catch {
+          return null;
+        }
+      }).filter(Boolean))].slice(0, 3);
+
+      if (topDomains.length) {
+        slides.push({
+          id: 'topSites',
+          video: shuffledVideos[2],
+          prompt: `Your top sites: ${topDomains.join(', ')}`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
+      const timeSpent = await bg.getTimeSpentPerSite(days, 5);
+      if (timeSpent.length) {
+        slides.push({
+          id: 'timeSpent',
+          video: shuffledVideos[3],
+          prompt: `Most time spent on: ${timeSpent.slice(0, 3).map(s => {
+            try {
+              return `${new URL(s.url).hostname} (${s.timeSpent} min)`;
+            } catch {
+              return null;
+            }
+          }).filter(Boolean).join(', ')}`,
+          metric: false,
+          metric_type: null
+        });
+      }
+
       const recFreq = await bg.getRecencyFrequency(days, 3);
-      slides.push({
-        id: 'recencyFrequency',
-        video: '/assets/videos/4.mp4',
-        prompt: `Recent + frequent: ${recFreq.map(r => `${r.domain} (seen ${r.count}x)`).join(', ')}`,
-        metric: false,
-        metric_type: null,
-      });
+      if (recFreq.length) {
+        slides.push({
+          id: 'recencyFrequency',
+          video: shuffledVideos[4],
+          prompt: `Recent & frequent: ${recFreq.map(r => `${r.domain} (seen ${r.count}x)`).join(', ')}`,
+          metric: false,
+          metric_type: null
+        });
+      }
 
-      // Slide 4: Visits per hour
       const visitsPerHour = await bg.getVisitsPerHour(days);
       const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
       slides.push({
         id: 'visitsPerHour',
-        video: '/assets/videos/5.mp4',
+        video: shuffledVideos[5],
         prompt: `Most active at hour ${peakHour.hour}: ${peakHour.totalVisits} visits`,
         metric: false,
-        metric_type: null,
+        metric_type: null
       });
 
       setSlides(slides);

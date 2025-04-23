@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import promptsData from './prompts.json';
+import { getData } from './slideShowData';
 import './popup.css';
 
 const SlideShow = ({ setView, timeRange, topDomains }) => {
     const [slides, setSlides] = useState([]);
     const [index, setIndex] = useState(0);
+    const [loading, setLoading] = useState(true);
     const videoRef = useRef(null);
 
     useEffect(() => {

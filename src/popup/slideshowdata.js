@@ -1,5 +1,4 @@
 import promptsData from './prompts.json';
-import { getData } from './slideshowdata';
 
 const timeRangeMap = {
   day: 'today',

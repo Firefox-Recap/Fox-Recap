@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import HomeView from './HomeView';
-import SlideShow from './Slideshow';
+import SlideShow from './SlideShow';
 
 const daysMap = { day: 1, week: 7, month: 30 };
 
@@ -15,7 +15,7 @@ const Popup = () => {
     const days = daysMap[range] || 1;
     const since = Date.now() - days*24*60*60*1000;
     // requires "history" permission in manifest
-    const visits = await browser.history.search({ text: '', startTime: since, maxResults: 0 });
+    const visits = await browser.history.search({ text: '', startTime: since, maxResults: 1000 });
     const counts = {};
     visits.forEach(v => {
       try {

@@ -51,6 +51,8 @@ const SlideShow = ({ setView, timeRange }) => {
 
       const slides = [];
 
+      // INTRO TO RECAP
+
       slides.push({
         id: 'intro',
         video: shuffledVideos[0],
@@ -58,6 +60,8 @@ const SlideShow = ({ setView, timeRange }) => {
         metric: false,
         metric_type: null
       });
+
+      // INTRO TO TOTAL WEBSITES
 
       slides.push({
         id: 'totalVisits',
@@ -67,25 +71,60 @@ const SlideShow = ({ setView, timeRange }) => {
         metric_type: null
       });
 
-      const topSitesRaw = await bg.getMostVisitedSites(days, 10);
-      const topDomains = [...new Set(topSitesRaw.map(s => {
-        try {
-          return new URL(s.url).hostname;
-        } catch {
-          return null;
+      // HERE I WANT TO ADD A SLIDE FOR TOTAL NUMBER OF SITES 
+
+    //   slides.push({
+    //     id: 'totalWebsites',
+    //     video: shuffledVideos[7],
+    //     prompt:
+    //     metric: false,
+    //     metric_type: null
+    //   });
+
+    // TOP 3 SITES 
+    try {
+        const topSitesRaw = await bg.getMostVisitedSites(days, 10);
+        const topDomains = [...new Set(topSitesRaw.map(s => {
+          try {
+            return new URL(s.url).hostname;
+          } catch {
+            return null;
+          }
+        }).filter(Boolean))].slice(0, 3);
+      
+        console.log('[Top Sites]', topDomains);
+      
+        if (topDomains.length >= 1) {
+          const [w1, w2, w3] = topDomains;
+          const options = promptsData.prompts.top3Websites || [];
+      
+          // Pick a random prompt or fallback
+          const basePrompt = options.length
+            ? options[Math.floor(Math.random() * options.length)].text
+            : "Top sites: [Website 1], [Website 2], [Website 3]";
+      
+          // Replace only the values that exist
+          const prompt = basePrompt
+            .replace("[Website 1]", w1 || "—")
+            .replace("[Website 2]", w2 || "")
+            .replace("[Website 3]", w3 || "");
+      
+          slides.push({
+            id: 'topSites',
+            video: shuffledVideos[2],
+            prompt,
+            metric: false,
+            metric_type: null
+          });
         }
-      }).filter(Boolean))].slice(0, 3);
-
-      if (topDomains.length) {
-        slides.push({
-          id: 'topSites',
-          video: shuffledVideos[2],
-          prompt: `Your top sites: ${topDomains.join(', ')}`,
-          metric: false,
-          metric_type: null
-        });
+      } catch (e) {
+        console.error('[Top Sites Slide Error]', e);
       }
+      
+      
+      
 
+      // MOST TIME SPENT ON 
       const timeSpent = await bg.getTimeSpentPerSite(days, 20);
       const domainTimeMap = new Map();
       
@@ -110,6 +149,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // REC FREC MAYBE TAKE OUT ???
       const recFreq = await bg.getRecencyFrequency(days, 3);
       if (recFreq.length) {
         slides.push({
@@ -121,6 +161,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);
       const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
       slides.push({
@@ -131,6 +172,7 @@ const SlideShow = ({ setView, timeRange }) => {
         metric_type: null
       });
 
+      // TOP CATEGORY 
       const labelCounts = await bg.getLabelCounts(days);
       const topCategory = labelCounts.sort((a, b) => b.count - a.count)[0];
       if (topCategory) {
@@ -143,6 +185,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // MOST BROWSED PAIR MAYBE TAKE OUT?
       const coCounts = await bg.getCOCounts(days);
       const topPair = Object.entries(coCounts).sort((a, b) => b[1] - a[1])[0];
       if (topPair) {
@@ -155,6 +198,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // BUSIEST DAY 
       const dailyCounts = await bg.getDailyVisitCounts(days);
       const mostVisitedDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
       if (mostVisitedDay) {
@@ -167,6 +211,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // TRENDING CATEFORY ON DATE
       const categoryTrends = await bg.getCategoryTrends(days);
       const topTrend = categoryTrends.sort((a, b) => b.categories[0].count - a.categories[0].count)[0];
       if (topTrend) {
@@ -179,12 +224,13 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      //MOST COMMON JUMP 
       const transitionPatterns = await bg.getTransitionPatterns(days);
       const topTransition = transitionPatterns.summary.topPattern;
       if (topTransition) {
         slides.push({
           id: 'topTransition',
-          video: shuffledVideos[10],
+          video: shuffledVideos[1],
           prompt: `Most common jump: ${new URL(topTransition.from).hostname} → ${new URL(topTransition.to).hostname}`,
           metric: false,
           metric_type: null

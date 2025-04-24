@@ -1,23 +1,8 @@
 import { db } from '../initdb.js';
-
-// Map scores to labels
-const CATEGORIES = [
-  'News',
-  'Entertainment',
-  'Shop',
-  'Chat',
-  'Education',
-  'Government',
-  'Health',
-  'Technology',
-  'Work',
-  'Travel',
-  'Uncategorized',
-];
-
+import { CATEGORIES, MS_PER_DAY } from '../../config.js';
 
 export async function getCOCounts(day) {
-  const cutoff = Date.now() - day * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - day * MS_PER_DAY;
   const coOccurCounts = {};
 
   // run a readonly transaction over the categories table

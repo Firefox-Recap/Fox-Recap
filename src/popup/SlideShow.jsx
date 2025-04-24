@@ -117,23 +117,19 @@ const SlideShow = ({ setView, timeRange }) => {
       }
 
       // MOST TIME SPENT ON 
-      const timeSpent = await bg.getTimeSpentPerSite(days, 20);
-      const domainTimeMap = new Map();
-      timeSpent.forEach(({ url, timeSpent }) => {
-        try {
-          const domain = new URL(url).hostname;
-          domainTimeMap.set(domain, (domainTimeMap.get(domain) || 0) + timeSpent);
-        } catch {}
-      });
+      const timeSpent = await bg.getRecencyFrequency(days, 20);
 
-      const topDomainsByTime = Array.from(domainTimeMap.entries()).sort((a, b) => b[1] - a[1]);
+      const domainTimeMap = new Map();
+      // RecencyFrequency returns { domain, count, lastVisit, daysSince, score }
+      const topDomainsByTime = timeSpent; 
+      
       if (topDomainsByTime.length) {
         slides.push({
           id: 'timeSpent',
           video: shuffledVideos[3],
           prompt: pickPrompt("mostTimeSpent", {
-            Website: topDomainsByTime[0][0],
-            Time: `${topDomainsByTime[0][1]} min`
+            Website: topDomainsByTime[0].domain,
+            Time: `${topDomainsByTime[0].score}` 
           }),
           metric: false,
           metric_type: null

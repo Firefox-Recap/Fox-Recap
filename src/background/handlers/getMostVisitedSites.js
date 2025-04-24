@@ -1,7 +1,9 @@
+import { MS_PER_DAY } from '../../config.js';
 import { db } from '../initdb.js';
+
 // this can be optimized i just dont know how
 export async function getMostVisitedSites(days, limit = 5) {
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - days * MS_PER_DAY;
   const visits = await db.visitDetails
     .where('visitTime')
     .above(cutoff)

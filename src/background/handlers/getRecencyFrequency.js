@@ -1,9 +1,9 @@
 import { db } from '../initdb.js';
+import { MS_PER_DAY } from '../../config.js'; 
 
 export async function getRecencyFrequency(days, limit = 5) {
-  const msPerDay = 24 * 60 * 60 * 1000;
   const now = Date.now();
-  const cutoff = now - days * msPerDay;
+  const cutoff = now - days * MS_PER_DAY;
 
   // fetch only visits on or after cutoff using the visitTime index
   const visits = await db.visitDetails
@@ -29,7 +29,7 @@ export async function getRecencyFrequency(days, limit = 5) {
   // compute score, sort and limit
   const result = [...stats.entries()]
     .map(([domain, { count, lastVisit }]) => {
-      const daysSince = (now - lastVisit) / msPerDay;
+      const daysSince = (now - lastVisit) / MS_PER_DAY;
       const score = count / (1 + daysSince);
       return {
         domain,

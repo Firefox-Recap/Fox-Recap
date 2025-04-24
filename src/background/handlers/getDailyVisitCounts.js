@@ -1,7 +1,8 @@
+import { MS_PER_DAY } from '../../config.js';
 import { db } from '../initdb.js';
 
 export async function getDailyVisitCounts(days) {
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - days * MS_PER_DAY;
   const counts = new Map();
 
   await db.visitDetails

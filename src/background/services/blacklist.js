@@ -1,7 +1,6 @@
 //heavily ai generated this file can be optimized alot
 import {parse} from 'tldts';
-
-const OISD_BLOCKLIST_URL = 'https://big.oisd.nl/domainswild';
+import {OISD_BLOCKLIST_URL} from '../../config.js';
 
 let oisdBlocklist = new Set();
 let oisdRegexList = [];

@@ -5,30 +5,30 @@ import {
   storeHistoryItems,
 } from '../services/db.js';
 import { ensureEngineIsReady, classifyURLAndTitle } from '../services/ml.js';
+import { MS_PER_DAY } from '../../config.js';
 
 export async function fetchAndStoreHistory(days) {
   const now = Date.now();
-  const startTime = now - days * 86400e3;
-  const items = await browser.history.search({ text: '', startTime, endTime: now, maxResults: 1e6 });
-
+  const startTime = now - days * MS_PER_DAY;
+  const items = await browser.history.search({ text: '', startTime, endTime: now, maxResults: 1e6 }); 
+  // explain why maxResults is set to 1e6 bascially we just need all the all the history items of the day.
   const checks = await Promise.all(
     items.map(async i => ({ item: i, blocked: await shouldBlockDomain(i.url) }))
   );
   const validItems = checks.filter(r => !r.blocked).map(r => r.item);
-  if (!validItems.length) return console.log('No valid history items found.');
+  if (!validItems.length) return console.debug('No valid history items found.');
 
   const keys   = validItems.map(i => [i.url, i.lastVisitTime]);
   const exists = await db.historyItems.bulkGet(keys);
   const newItems = validItems.filter((_, idx) => !exists[idx]);
   if (!newItems.length) return console.log('No new history items to store.');
-  console.log(`Processing ${newItems.length} new history items…`);
+  console.debug(`Processing ${newItems.length} new history items…`);
 
   await db.transaction('rw', db.historyItems, async () => {
     await storeHistoryItems(newItems);
   });
 
   const threshold = 0.5;
-  // startup ML engine one time up front
   await ensureEngineIsReady();
 
   const limit = pLimit(5);
@@ -70,6 +70,6 @@ export async function fetchAndStoreHistory(days) {
     if (categoriesBulk.length)  await db.categories.bulkPut(categoriesBulk);
   });
 
-  console.log(`Completed processing ${newItems.length} new history items`);
+  console.debug(`Completed processing ${newItems.length} new history items`);
   return newItems.length;
 }

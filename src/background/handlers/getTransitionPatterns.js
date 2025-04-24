@@ -1,7 +1,8 @@
 import { db } from '../initdb.js';
+import { MS_PER_DAY } from '../../config.js';
 
 export async function getTransitionPatterns(days) {
-    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - days * MS_PER_DAY;
 
     //fetch & sort visits in one shot via the visitTime index
     const entries = await db.visitDetails

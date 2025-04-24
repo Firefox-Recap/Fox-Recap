@@ -1,22 +1,8 @@
 import {db} from '../initdb.js';
-
-// Map scores to labels
-const CATEGORIES = [
-  'News',
-  'Entertainment',
-  'Shop',
-  'Chat',
-  'Education',
-  'Government',
-  'Health',
-  'Technology',
-  'Work',
-  'Travel',
-  'Uncategorized',
-];
+import { CATEGORIES, MS_PER_DAY } from '../../config.js';
 
 export async function getLabelCounts(days) {
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - days * MS_PER_DAY;
 
   // only load categories with lastVisitTime ≥ cutoff
   const records = await db.categories

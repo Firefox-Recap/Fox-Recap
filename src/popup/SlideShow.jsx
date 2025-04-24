@@ -76,6 +76,16 @@ const SlideShow = ({ setView, timeRange }) => {
         metric: false,
         metric_type: null
       });
+      
+      // UNIQUE WEBSITES VISITED
+      const totalUnique = await bg.getUniqueWebsites(days);
+      slides.push({
+        id: 'totalWebsites',
+        video: shuffledVideos[2],
+        prompt: `You visited ${totalUnique.toLocaleString()} unique websites ${timeRangeMap[timeRange]}.`,
+        metric: true,
+        metric_type: "count"
+      });
 
 
       // HERE I WANT TO ADD A SLIDE FOR TOTAL NUMBER OF SITES 
@@ -108,6 +118,7 @@ const SlideShow = ({ setView, timeRange }) => {
           metric_type: null
         });
       }
+
 
       // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);
@@ -241,11 +252,12 @@ const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ?
   }, [index]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    const timer = setTimeout(() => {
       setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev));
     }, 5000);
-    return () => clearInterval(timer);
-  }, [slides.length]);
+  
+    return () => clearTimeout(timer);
+  }, [index, slides.length]);
 
   if (loading) {
     return (

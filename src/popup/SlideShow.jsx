@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import './popup.css';
 import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
+import RadarCategoryChart from './RadarCategoryChart';
+
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
@@ -150,9 +152,17 @@ const SlideShow = ({ setView, timeRange }) => {
         metric_type: null
       });
 
+
       // TOP CATEGORY 
       const labelCounts = await bg.getLabelCounts(days);
       const topCategory = labelCounts.sort((a, b) => b.count - a.count)[0];
+
+      // Format all categories for radar chart
+      const categoryChartData = labelCounts.map(item => ({
+        category: item.categories[0],
+        count: item.count
+      }));
+
       if (topCategory) {
         slides.push({
           id: 'topCategory',
@@ -164,7 +174,17 @@ const SlideShow = ({ setView, timeRange }) => {
           metric: false,
           metric_type: null
         });
+
+        slides.push({
+          id: 'topCategoryRadar',
+          video: null, // optional background
+          prompt: "Here's how your categories stack up 📊",
+          chart: <RadarCategoryChart data={categoryChartData} />,
+          metric: false,
+          metric_type: null
+        });
       }
+
 
       // BUSIEST DAY 
       const dailyCounts = await bg.getDailyVisitCounts(days);
@@ -262,9 +282,11 @@ const SlideShow = ({ setView, timeRange }) => {
         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         onError={(e) => console.error("Error loading video:", e)}
       >
-        {slides.length > 0 && <source src={slides[index].video} type="video/mp4" />}
+        {slides.length > 0 && slides[index].video && (
+          <source src={slides[index].video} type="video/mp4" />
+        )}
       </video>
-
+  
       <button
         onClick={() => setView('home')}
         style={{
@@ -280,11 +302,23 @@ const SlideShow = ({ setView, timeRange }) => {
       >
         ×
       </button>
+  {/* // chart  */}
 
-      <h1 style={{ color: "#fff", textAlign: "center", width: "80%", position: 'absolute', left:'10%', top: '40%' }}>
-        {slides.length > 0 && slides[index].prompt}
-      </h1>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+        {slides[index]?.chart ? (
+          <>
+            <h1 style={{ color: '#fff', textAlign: 'center', marginBottom: '1rem' }}>{slides[index]?.prompt}</h1>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100% - 100px)' }}>
+              {slides[index].chart}
+            </div>
+          </>
+        ) : (
+          <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>{slides[index]?.prompt}</h1>
+        )}
+      </div>
 
+  
+      {/* Navigation Buttons */}
       <button
         style={{
           position: 'absolute',
@@ -303,7 +337,7 @@ const SlideShow = ({ setView, timeRange }) => {
       >
         <FaArrowRight />
       </button>
-
+  
       <button
         style={{
           position: 'absolute',
@@ -322,7 +356,6 @@ const SlideShow = ({ setView, timeRange }) => {
       >
         <FaArrowLeft />
       </button>
-
     </div>
   );
 };

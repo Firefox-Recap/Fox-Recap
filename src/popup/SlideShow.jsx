@@ -109,30 +109,6 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
-      // MOST TIME SPENT ON 
-      const timeSpent = await bg.getTimeSpentPerSite(days, 20);
-      const domainTimeMap = new Map();
-      timeSpent.forEach(({ url, timeSpent }) => {
-        try {
-          const domain = new URL(url).hostname;
-          domainTimeMap.set(domain, (domainTimeMap.get(domain) || 0) + timeSpent);
-        } catch {}
-      });
-
-      const topDomainsByTime = Array.from(domainTimeMap.entries()).sort((a, b) => b[1] - a[1]);
-      if (topDomainsByTime.length) {
-        slides.push({
-          id: 'timeSpent',
-          video: shuffledVideos[3],
-          prompt: pickPrompt("mostTimeSpent", {
-            Website: topDomainsByTime[0][0],
-            Time: `${topDomainsByTime[0][1]} min`
-          }),
-          metric: false,
-          metric_type: null
-        });
-      }
-
       // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);
 const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
@@ -159,8 +135,6 @@ const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ?
       metric: false,
       metric_type: null
     });
-
-
 
       // TOP CATEGORY 
       const labelCounts = await bg.getLabelCounts(days);

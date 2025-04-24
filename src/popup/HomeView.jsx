@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import './popup.css'; // define .spinner-overlay & .spinner in here
 
 
-const HomeView = ({ onSelectTimeRange, loading }) => (
+const HomeView = ({ onSelectTimeRange, loading, onOpenSettings}) => (
   <>
     <video autoPlay muted loop style={{
       position: 'fixed',
@@ -31,6 +31,24 @@ const HomeView = ({ onSelectTimeRange, loading }) => (
           </button>
         ))}
       </div>
+      <button
+        onClick={onOpenSettings}
+        className="settings-btn"
+        style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          background: 'rgba(255, 255, 255, 0.85)',
+          border: 'none',
+          borderRadius: '6px',
+          padding: '8px 12px',
+          fontSize: '14px',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+          cursor: 'pointer',
+          zIndex: 3
+        }}>
+          ⚙️ Settings
+        </button>
       {loading && (
         <div className="spinner-overlay">
           <div className="spinner"/>
@@ -42,7 +60,8 @@ const HomeView = ({ onSelectTimeRange, loading }) => (
 
 HomeView.propTypes = {
   onSelectTimeRange: PropTypes.func.isRequired,
-  loading: PropTypes.bool
+  loading: PropTypes.bool,
+  onOpenSettings: PropTypes.func // optional for now
 };
 
 export default HomeView;

@@ -35,9 +35,37 @@ const Popup = () => {
     setView('slideshow');
   };
 
-  return view === 'home'
-    ? <HomeView onSelectTimeRange={onSelectTimeRange} loading={loading}/>
-    : <SlideShow setView={setView} timeRange={timeRange} topDomains={topDomains}/>;
-};
+
+
+  if (view === 'home') {
+    return (
+      <HomeView
+        onSelectTimeRange={onSelectTimeRange}
+        loading={loading}
+        onOpenSettings={() => setView('settings')}
+      />
+    );
+  }
+  
+  if (view === 'slideshow') {
+    return (
+      <SlideShow
+        setView={setView}
+        timeRange={timeRange}
+        topDomains={topDomains}
+      />
+    );
+  }
+  
+  if (view === 'settings') {
+    return (
+      <div style={{ padding: '20px', color: '#333' }}>
+        <h2>Settings (Coming Soon)</h2>
+        <button onClick={() => setView('home')}>← Back to Home</button>
+      </div>
+    );
+  }
+}
+  
 
 export default Popup;

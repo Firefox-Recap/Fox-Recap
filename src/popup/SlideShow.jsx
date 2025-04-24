@@ -121,8 +121,6 @@ const SlideShow = ({ setView, timeRange }) => {
         console.error('[Top Sites Slide Error]', e);
       }
       
-      
-      
 
       // MOST TIME SPENT ON 
       const timeSpent = await bg.getTimeSpentPerSite(days, 20);

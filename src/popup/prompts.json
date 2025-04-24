@@ -1,0 +1,230 @@
+{
+    "prompts": {
+      "introRecap": [
+        {
+          "id": "introRecap1",
+          "text": "Here’s a recap of your browser activity [x]! 🔍💡"
+        },
+        {
+          "id": "introRecap2",
+          "text": "Let's check out what was browsed [x]. 📊🧭"
+        },
+        {
+          "id": "introRecap3",
+          "text": "Here’s what your browsing looked like [x]. 🖥️📅"
+        },
+        {
+          "id": "introRecap4",
+          "text": "Let's dive into the digital depths of your browser activity [x]. 🌊💾"
+        },
+        {
+          "id": "introRecap5",
+          "text": "Ready to rewind? Here's a glance back at your browsing from [x]. ⏪🧠"
+        },
+        {
+          "id": "introRecap6",
+          "text": "Peek into your past pages—here's your browser history for [x]. 👀📚"
+        }
+      ],
+      "introToTotalWebsites": [
+        {
+          "id": "introTotal1",
+          "text": "Let’s take a look at how many websites you've visited. 🌐🔢"
+        },
+        {
+          "id": "introTotal2",
+          "text": "Let's see how many digital stops you've made—here's the count of websites you've visited. 🗺️🖱️"
+        },
+        {
+          "id": "introTotal3",
+          "text": "Curious about your web footprint? Here's the total number of websites you've visited. 🧭👣"
+        },
+        {
+          "id": "introTotal4",
+          "text": "Let's uncover the extent of your web explorations—how many sites have you visited? 🌍🔎"
+        },
+        {
+          "id": "introTotal5",
+          "text": "Diving into your digital journey, let's count how many websites caught your attention. 🧠💻"
+        },
+        {
+          "id": "introTotal6",
+          "text": "Time to tally up! Here's how many different websites you've explored. 🧾✨"
+        },
+        {
+          "id": "introTotal7",
+          "text": "Let’s map out your online adventure—how many websites have you visited? 🗺️🚀"
+        }
+      ],
+    "totalWebsites": [
+      {
+        "id": "totalSites1",
+        "text": "You've visited [x] unique websites today—explorer of the digital universe! 🌌🚀"
+      },
+      {
+        "id": "totalSites2",
+        "text": "You clicked [x] URLs this [d,w,m]—curious, unstoppable, and maybe just a little too online. 🌐👀"
+      },
+      {
+        "id": "totalSites3",
+        "text": "You navigated through [X] unique websites this [x]—a true net navigator! 🧭🌐"
+      },
+      {
+        "id": "totalSites4",
+        "text": "You launched [X] website visits this [x]—digital explorer status: Expert! 🚀🌟"
+      },
+      {
+        "id": "totalSites5",
+        "text": "Your browser saw [X] sites this [x]—you're surfing the web waves! 🏄‍♀️🌊"
+      }
+    ],
+    "top3Websites":[
+      {
+        "id" : "topThree1",
+        "text": "Today's top sites were [Website 1], [Website 2], [Website 3]. What were you searching for? 🏆💻"
+      },
+      {
+        "id" : "topThree2",
+        "text": "Your web hotspots today were [Website 1], [Website 2], and [Website 3]. What a lineup! 🌟📈"
+      },
+      {
+        "id" : "topThree3",
+        "text": "Today’s digital tour took you to [Website 1], [Website 2], and [Website 3]—centers of your online universe! 🌍💫"
+      },
+      {
+        "id" : "topThree4",
+        "text": "Leading your browser leaderboard today: [Website 1], [Website 2], [Website 3]. Spotlight on your top sites! 🏆🔦"
+      }
+    ],
+        "mostTimeSpent": [
+      {
+        "id": "timeSpent1",
+        "text": "You spent the most time on [Website]—a whopping [Time]! Deep dive or just deep scrolling? 🕵️‍♂️⌛"
+      },
+      {
+        "id": "timeSpent2",
+        "text": "Clocked in at [Website] for [Time]—someone's committed! ⏱️🖥️"
+      },
+      {
+        "id": "timeSpent3",
+        "text": "[Website] topped your attention chart with [Time] of browsing—what kept you so hooked? 🎣🧲"
+      },
+      {
+        "id": "timeSpent4",
+        "text": "[Time] on [Website]? That’s dedication—or a rabbit hole. 🕳️🐇"
+      },
+      {
+        "id": "timeSpent5",
+        "text": "Most of your screen time went to [Website]—[Time] of pure focus (or distraction?) 😅🧠"
+      }
+    ], "peakBrowsingTime": [
+      {
+        "id": "peakHour1",
+        "text": "Your peak browsing window was from [Start] to [End] with [Count] visits—power hour, activated! ⚡🖱️"
+      },
+      {
+        "id": "peakHour2",
+        "text": "Most clicks happened between [Start] and [End]—you were on a roll with [Count] visits! 🚀📊"
+      },
+      {
+        "id": "peakHour3",
+        "text": "[Count] visits between [Start] and [End]—your digital golden hour. ☀️🌐"
+      },
+      {
+        "id": "peakHour4",
+        "text": "From [Start] to [End], the browser was buzzing—[Count] sites loaded like clockwork. ⏰💨"
+      }
+    ],
+    "topCategory": [
+      {
+        "id": "category1",
+        "text": "[Category] topped your charts with [Count] visits—clearly a favorite. 🎯📚"
+      },
+      {
+        "id": "category2",
+        "text": "Your most clicked category was [Category]—you racked up [Count] visits. Consistent much? 📈📂"
+      },
+      {
+        "id": "category3",
+        "text": "[Count] visits in [Category]—looks like your curiosity had a theme. 🧠🔍"
+      },
+      {
+        "id": "category4",
+        "text": "[Category] was your digital playground with [Count] hits. 🛝📲"
+      }
+    ],
+    "busiestDay": [
+      {
+        "id": "busiest1",
+        "text": "[Date] was your most active day—[Count] visits! Your tabs were on fire. 🔥🧑‍💻"
+      },
+      {
+        "id": "busiest2",
+        "text": "With [Count] visits, [Date] topped the charts as your busiest browsing day. 🚦📅"
+      },
+      {
+        "id": "busiest3",
+        "text": "[Date] = [Count] visits. Was something due, or just good ol’ curiosity? 🤔📚"
+      },
+      {
+        "id": "busiest4",
+        "text": "You really made the rounds on [Date]—[Count] visits strong! 🏃‍♀️💻"
+      }
+    ],
+    "trendingCategory": [
+      {
+        "id": "trend1",
+        "text": "[Category] spiked on [Date]—trending in your personal internet bubble. 📈🌍"
+      },
+      {
+        "id": "trend2",
+        "text": "Your clicks shifted to [Category] on [Date]—a change of pace? 🔁📚"
+      },
+      {
+        "id": "trend3",
+        "text": "[Date] was all about [Category]—what sparked the streak? 💡💥"
+      },
+      {
+        "id": "trend4",
+        "text": "A noticeable surge in [Category] on [Date]—looks like something caught your interest. 📊👀"
+      }
+    ],
+    "mostCommonJump": [
+      {
+        "id": "jump1",
+        "text": "You most often jumped from [From] to [To]—a digital two-step. 🩰🔁"
+      },
+      {
+        "id": "jump2",
+        "text": "[From] → [To] was your go-to combo. Muscle memory? 📎➡️📎"
+      },
+      {
+        "id": "jump3",
+        "text": "A familiar path: [From] to [To]—one click to the next. 🧭🔗"
+      },
+      {
+        "id": "jump4",
+        "text": "[From] to [To] formed your most traveled route. What’s the story? 📘🛣️"
+      }
+    ],
+        "recapOutro": [
+      {
+        "id": "recapOutro1",
+        "text": "That’s a wrap for your browsing recap [x]! Ready to do it all again tomorrow? 🔄🧠"
+      },
+      {
+        "id": "recapOutro2",
+        "text": "You made it through your digital highlights [x]—see you next scroll! 👋💻"
+      },
+      {
+        "id": "recapOutro3",
+        "text": "Your [x] recap ends here—but the internet never sleeps. 🌙📡"
+      },
+      {
+        "id": "recapOutro4",
+        "text": "That was your recap [x]—keep exploring, and we’ll be watching 👀🌐"
+      }
+    ]
+    }
+  }
+  

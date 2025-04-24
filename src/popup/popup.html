@@ -5,26 +5,7 @@
   <title>Firefox Recap</title>
 </head>
 <body>
-  <h1>Firefox Recap</h1>
-
-  <div>
-    <label for="days">Days:</label>
-    <input type="number" id="days" min="1" value="7" />
-  </div>
-
-  <div>
-    <button id="btnVisited">Most Visited Sites</button>
-    <button id="btnLabels">Label Counts</button>
-    <button id="btnCO">Co‑occurrence Counts</button>
-    <button id="btnVisitsPerHour">Visits Per Hour</button>
-    <button id="btnDaily">Daily Visits</button>
-    <button id="btnCategoryTrends">Category Trends</button>
-    <button id="btnTransitionPatterns">Transition Patterns</button>
-    <button id="btnTimeSpent">Time Spent Per Site</button>
-    <button id="btnRecencyFreq">Recency Frequency</button>
-  </div>
-
-  <pre id="output">Click a button above…</pre>
+  <div id="root" style="width:850px;height:750px;"></div>
   <script src="popup.js"></script>
 </body>
 </html>

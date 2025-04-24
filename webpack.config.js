@@ -8,7 +8,7 @@ module.exports = (_, argv) => {
     mode: isProd ? 'production' : 'development',
     entry: {
       background: './src/background/background.js',
-      popup: './src/popup/popup.js'
+      popup: './src/popup/index.jsx'
     },
     resolve: {
       extensions: ['.js', '.jsx']
@@ -20,7 +20,7 @@ module.exports = (_, argv) => {
     },
     module: {
       rules: [
-        { test: /\.jsx?$/, exclude: /node_modules/, use: { loader: 'babel-loader', options: { babelrc: false, presets: ['@babel/preset-env'] } } },
+        { test: /\.jsx?$/, exclude: /node_modules/, use: { loader: 'babel-loader', options: { babelrc: false, presets: ['@babel/preset-env', '@babel/preset-react'] } } },
         { test: /\.css$/i, use: ['style-loader','css-loader'] }
       ]
     },

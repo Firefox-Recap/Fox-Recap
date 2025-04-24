@@ -3,7 +3,6 @@ import './popup.css';
 import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 
-
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
   const [index, setIndex] = useState(0);
@@ -23,11 +22,16 @@ const SlideShow = ({ setView, timeRange }) => {
     month: "this month",
   };
 
-  const getRandomPrompt = (timeRange, type) => {
-    const prompts = promptsData.prompts[type] || [];
-    if (!prompts.length) return "";
-    const index = Math.floor(Math.random() * prompts.length);
-    return prompts[index].text.replace("[x]", timeRangeMap[timeRange]);
+  const pickPrompt = (section, replacements = {}) => {
+    const options = promptsData.prompts[section] || [];
+    if (!options.length) return '';
+
+    const template = options[Math.floor(Math.random() * options.length)].text;
+
+    return Object.entries(replacements).reduce(
+      (result, [key, val]) => result.replaceAll(`[${key}]`, val),
+      template
+    );
   };
 
   const shuffle = (array) => {
@@ -51,25 +55,25 @@ const SlideShow = ({ setView, timeRange }) => {
 
       const slides = [];
 
-      // INTRO TO RECAP
 
+      // INTRO TO RECAP
       slides.push({
         id: 'intro',
         video: shuffledVideos[0],
-        prompt: getRandomPrompt(timeRange, "introRecap"),
+        prompt: pickPrompt("introRecap", { x: timeRangeMap[timeRange] }),
         metric: false,
         metric_type: null
       });
 
       // INTRO TO TOTAL WEBSITES
-
       slides.push({
         id: 'totalVisits',
         video: shuffledVideos[1],
-        prompt: getRandomPrompt(timeRange, "introToTotalWebsites"),
+        prompt: pickPrompt("introToTotalWebsites", { x: timeRangeMap[timeRange] }),
         metric: false,
         metric_type: null
       });
+
 
       // HERE I WANT TO ADD A SLIDE FOR TOTAL NUMBER OF SITES 
 
@@ -81,79 +85,46 @@ const SlideShow = ({ setView, timeRange }) => {
     //     metric_type: null
     //   });
 
-    // TOP 3 SITES 
-    try {
-        const topSitesRaw = await bg.getMostVisitedSites(days, 10);
-        const topDomains = [...new Set(topSitesRaw.map(s => {
-          try {
-            return new URL(s.url).hostname;
-          } catch {
-            return null;
-          }
-        }).filter(Boolean))].slice(0, 3);
-      
-        console.log('[Top Sites]', topDomains);
-      
-        if (topDomains.length >= 1) {
-          const [w1, w2, w3] = topDomains;
-          const options = promptsData.prompts.top3Websites || [];
-      
-          // Pick a random prompt or fallback
-          const basePrompt = options.length
-            ? options[Math.floor(Math.random() * options.length)].text
-            : "Top sites: [Website 1], [Website 2], [Website 3]";
-      
-          // Replace only the values that exist
-          const prompt = basePrompt
-            .replace("[Website 1]", w1 || "—")
-            .replace("[Website 2]", w2 || "")
-            .replace("[Website 3]", w3 || "");
-      
-          slides.push({
-            id: 'topSites',
-            video: shuffledVideos[2],
-            prompt,
-            metric: false,
-            metric_type: null
-          });
-        }
-      } catch (e) {
-        console.error('[Top Sites Slide Error]', e);
+      // TOP 3 SITES 
+      const topSitesRaw = await bg.getMostVisitedSites(days, 10);
+      const topDomains = [...new Set(topSitesRaw.map(s => {
+        try { return new URL(s.url).hostname; } catch { return null; }
+      }).filter(Boolean))].slice(0, 3);
+
+      if (topDomains.length >= 1) {
+        const [w1, w2, w3] = topDomains;
+        slides.push({
+          id: 'topSites',
+          video: shuffledVideos[2],
+          prompt: pickPrompt("top3Websites", {
+            'Website 1': w1 || '—',
+            'Website 2': w2 || '',
+            'Website 3': w3 || ''
+          }),
+          metric: false,
+          metric_type: null
+        });
       }
-      
 
       // MOST TIME SPENT ON 
       const timeSpent = await bg.getTimeSpentPerSite(days, 20);
       const domainTimeMap = new Map();
-      
       timeSpent.forEach(({ url, timeSpent }) => {
         try {
           const domain = new URL(url).hostname;
           domainTimeMap.set(domain, (domainTimeMap.get(domain) || 0) + timeSpent);
         } catch {}
       });
-      
-      const topDomainsByTime = Array.from(domainTimeMap.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 3);
-      
+
+      const topDomainsByTime = Array.from(domainTimeMap.entries()).sort((a, b) => b[1] - a[1]);
       if (topDomainsByTime.length) {
         slides.push({
           id: 'timeSpent',
           video: shuffledVideos[3],
-          prompt: `Most time spent on: ${topDomainsByTime.map(([domain, time]) => `${domain} (${time} min)`).join(', ')}`,
-          metric: false,
-          metric_type: null
-        });
-      }
-
-      // REC FREC MAYBE TAKE OUT ???
-      const recFreq = await bg.getRecencyFrequency(days, 3);
-      if (recFreq.length) {
-        slides.push({
-          id: 'recencyFrequency',
-          video: shuffledVideos[4],
-          prompt: `Recent & frequent: ${recFreq.map(r => `${r.domain} (seen ${r.count}x)`).join(', ')}`,
+          prompt: pickPrompt("mostTimeSpent", {
+            Website: topDomainsByTime[0][0],
+            Time: `${topDomainsByTime[0][1]} min`
+          }),
           metric: false,
           metric_type: null
         });
@@ -162,10 +133,19 @@ const SlideShow = ({ setView, timeRange }) => {
       // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);
       const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
+      const start = ((peakHour.hour % 12) || 12);
+      const end = ((peakHour.hour + 1) % 12 || 12);
+      const startLabel = `${start}${peakHour.hour < 12 ? 'am' : 'pm'}`;
+      const endLabel = `${end}${(peakHour.hour + 1) < 12 || peakHour.hour === 23 ? 'am' : 'pm'}`;
+
       slides.push({
         id: 'visitsPerHour',
-        video: shuffledVideos[5],
-        prompt: `Your peak browsing time was between ${((peakHour.hour % 12) || 12)}${peakHour.hour < 12 ? 'am' : 'pm'} and ${((peakHour.hour + 1) % 12 || 12)}${peakHour.hour + 1 < 12 || peakHour.hour === 23 ? 'am' : 'pm'}, with ${peakHour.totalVisits} visits`,
+        video: shuffledVideos[4],
+        prompt: pickPrompt("peakBrowsingTime", {
+          Start: startLabel,
+          End: endLabel,
+          Count: peakHour.totalVisits
+        }),
         metric: false,
         metric_type: null
       });
@@ -176,21 +156,11 @@ const SlideShow = ({ setView, timeRange }) => {
       if (topCategory) {
         slides.push({
           id: 'topCategory',
-          video: shuffledVideos[6],
-          prompt: `Your top category: ${topCategory.categories[0]} (${topCategory.count} visits)`,
-          metric: false,
-          metric_type: null
-        });
-      }
-
-      // MOST BROWSED PAIR MAYBE TAKE OUT?
-      const coCounts = await bg.getCOCounts(days);
-      const topPair = Object.entries(coCounts).sort((a, b) => b[1] - a[1])[0];
-      if (topPair) {
-        slides.push({
-          id: 'categoryPair',
-          video: shuffledVideos[7],
-          prompt: `Most browsed pair: ${topPair[0]} (${topPair[1]} co-visits)`,
+          video: shuffledVideos[5],
+          prompt: pickPrompt("topCategory", {
+            Category: topCategory.categories[0],
+            Count: topCategory.count
+          }),
           metric: false,
           metric_type: null
         });
@@ -202,38 +172,56 @@ const SlideShow = ({ setView, timeRange }) => {
       if (mostVisitedDay) {
         slides.push({
           id: 'busiestDay',
-          video: shuffledVideos[8],
-          prompt: `Your busiest day: ${mostVisitedDay.date} with ${mostVisitedDay.count} visits`,
+          video: shuffledVideos[6],
+          prompt: pickPrompt("busiestDay", {
+            Date: mostVisitedDay.date,
+            Count: mostVisitedDay.count
+          }),
           metric: false,
           metric_type: null
         });
       }
 
-      // TRENDING CATEFORY ON DATE
+      // TRENDING CATEGORY ON DATE 
       const categoryTrends = await bg.getCategoryTrends(days);
       const topTrend = categoryTrends.sort((a, b) => b.categories[0].count - a.categories[0].count)[0];
       if (topTrend) {
         slides.push({
           id: 'trendingCategory',
-          video: shuffledVideos[9],
-          prompt: `Trending category on ${topTrend.date}: ${topTrend.categories[0].label}`,
+          video: shuffledVideos[7],
+          prompt: pickPrompt("trendingCategory", {
+            Category: topTrend.categories[0].label,
+            Date: topTrend.date
+          }),
           metric: false,
           metric_type: null
         });
       }
 
-      //MOST COMMON JUMP 
+      // MOST COMMON JUMP 
       const transitionPatterns = await bg.getTransitionPatterns(days);
       const topTransition = transitionPatterns.summary.topPattern;
       if (topTransition) {
         slides.push({
           id: 'topTransition',
-          video: shuffledVideos[1],
-          prompt: `Most common jump: ${new URL(topTransition.from).hostname} → ${new URL(topTransition.to).hostname}`,
+          video: shuffledVideos[8],
+          prompt: pickPrompt("mostCommonJump", {
+            From: new URL(topTransition.from).hostname,
+            To: new URL(topTransition.to).hostname
+          }),
           metric: false,
           metric_type: null
         });
       }
+
+      // FINAL SLIDE: OUTRO
+      slides.push({
+        id: 'recapOutro',
+        video: shuffledVideos[9],
+        prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] }),
+        metric: false,
+        metric_type: null
+      });
 
       setSlides(slides);
       setLoading(false);
@@ -241,6 +229,7 @@ const SlideShow = ({ setView, timeRange }) => {
 
     loadSlides();
   }, [timeRange]);
+
 
   useEffect(() => {
     if (videoRef.current) {

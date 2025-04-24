@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import './popup.css';
 import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
+import RadarCategoryChart from './RadarCategoryChart';
+import TimeOfDayHistogram from './TimeOfDayHistogram';
+
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
@@ -116,49 +119,44 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
-      // MOST TIME SPENT ON 
-      const timeSpent = await bg.getRecencyFrequency(days, 20);
-
-      const domainTimeMap = new Map();
-      // RecencyFrequency returns { domain, count, lastVisit, daysSince, score }
-      const topDomainsByTime = timeSpent; 
-      
-      if (topDomainsByTime.length) {
-        slides.push({
-          id: 'timeSpent',
-          video: shuffledVideos[3],
-          prompt: pickPrompt("mostTimeSpent", {
-            Website: topDomainsByTime[0].domain,
-            Time: `${topDomainsByTime[0].score}` 
-          }),
-          metric: false,
-          metric_type: null
-        });
-      }
 
       // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);
-      const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
-      const start = ((peakHour.hour % 12) || 12);
-      const end = ((peakHour.hour + 1) % 12 || 12);
-      const startLabel = `${start}${peakHour.hour < 12 ? 'am' : 'pm'}`;
-      const endLabel = `${end}${(peakHour.hour + 1) < 12 || peakHour.hour === 23 ? 'am' : 'pm'}`;
+const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
 
-      slides.push({
-        id: 'visitsPerHour',
-        video: shuffledVideos[4],
-        prompt: pickPrompt("peakBrowsingTime", {
-          Start: startLabel,
-          End: endLabel,
-          Count: peakHour.totalVisits
-        }),
-        metric: false,
-        metric_type: null
-      });
+    // Existing slide with prompt
+    slides.push({
+      id: 'visitsPerHour',
+      video: shuffledVideos[4],
+      prompt: pickPrompt("peakBrowsingTime", {
+        Start: `${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`,
+        End: `${((peakHour.hour + 1) % 12) || 12}${(peakHour.hour + 1) < 12 ? 'am' : 'pm'}`,
+        Count: peakHour.totalVisits
+      }),
+      metric: false,
+      metric_type: null
+    });
+
+    // New histogram chart slide
+    slides.push({
+      id: 'visitsPerHourChart',
+      video: null,
+      prompt: "Your browsing activity by hour ⏰",
+      chart: <TimeOfDayHistogram data={visitsPerHour} />,
+      metric: false,
+      metric_type: null
+    });
 
       // TOP CATEGORY 
       const labelCounts = await bg.getLabelCounts(days);
       const topCategory = labelCounts.sort((a, b) => b.count - a.count)[0];
+
+      // Format all categories for radar chart
+      const categoryChartData = labelCounts.map(item => ({
+        category: item.categories[0],
+        count: item.count
+      }));
+
       if (topCategory) {
         slides.push({
           id: 'topCategory',
@@ -170,7 +168,17 @@ const SlideShow = ({ setView, timeRange }) => {
           metric: false,
           metric_type: null
         });
+
+        slides.push({
+          id: 'topCategoryRadar',
+          video: null, // optional background
+          prompt: "Here's how your categories stack up 📊",
+          chart: <RadarCategoryChart data={categoryChartData} />,
+          metric: false,
+          metric_type: null
+        });
       }
+
 
       // BUSIEST DAY 
       const dailyCounts = await bg.getDailyVisitCounts(days);
@@ -269,9 +277,11 @@ const SlideShow = ({ setView, timeRange }) => {
         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         onError={(e) => console.error("Error loading video:", e)}
       >
-        {slides.length > 0 && <source src={slides[index].video} type="video/mp4" />}
+        {slides.length > 0 && slides[index].video && (
+          <source src={slides[index].video} type="video/mp4" />
+        )}
       </video>
-
+  
       <button
         onClick={() => setView('home')}
         style={{
@@ -287,11 +297,23 @@ const SlideShow = ({ setView, timeRange }) => {
       >
         ×
       </button>
+  {/* // chart  */}
 
-      <h1 style={{ color: "#fff", textAlign: "center", width: "80%", position: 'absolute', left:'10%', top: '40%' }}>
-        {slides.length > 0 && slides[index].prompt}
-      </h1>
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+        {slides[index]?.chart ? (
+          <>
+            <h1 style={{ color: '#fff', textAlign: 'center', marginBottom: '1rem' }}>{slides[index]?.prompt}</h1>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100% - 100px)' }}>
+              {slides[index].chart}
+            </div>
+          </>
+        ) : (
+          <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>{slides[index]?.prompt}</h1>
+        )}
+      </div>
 
+  
+      {/* Navigation Buttons */}
       <button
         style={{
           position: 'absolute',
@@ -310,7 +332,7 @@ const SlideShow = ({ setView, timeRange }) => {
       >
         <FaArrowRight />
       </button>
-
+  
       <button
         style={{
           position: 'absolute',
@@ -329,7 +351,6 @@ const SlideShow = ({ setView, timeRange }) => {
       >
         <FaArrowLeft />
       </button>
-
     </div>
   );
 };

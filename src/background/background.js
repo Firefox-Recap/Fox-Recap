@@ -9,6 +9,7 @@ import { getCategoryTrends } from './handlers/getCategoryTrends.js';
 import { getTransitionPatterns } from './handlers/getTransitionPatterns.js';
 import { getTimeSpentPerSite } from './handlers/getTimeSpentPerSite.js';
 import { getRecencyFrequency } from './handlers/getRecencyFrequency.js';
+import { getUniqueWebsites } from './handlers/getUniqueWebsites.js';
 
 (async function init() {
   try {
@@ -29,6 +30,7 @@ window.getCategoryTrends = getCategoryTrends;
 window.getTransitionPatterns = getTransitionPatterns;
 window.getTimeSpentPerSite = getTimeSpentPerSite;
 window.getRecencyFrequency = getRecencyFrequency;
+window.getUniqueWebsites = getUniqueWebsites;
 
 // (async () => {
 //   try {

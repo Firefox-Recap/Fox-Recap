@@ -3,6 +3,7 @@ import './popup.css';
 import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
+import TimeOfDayHistogram from './TimeOfDayHistogram';
 
 
 const SlideShow = ({ setView, timeRange }) => {
@@ -134,23 +135,31 @@ const SlideShow = ({ setView, timeRange }) => {
 
       // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);
-      const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
-      const start = ((peakHour.hour % 12) || 12);
-      const end = ((peakHour.hour + 1) % 12 || 12);
-      const startLabel = `${start}${peakHour.hour < 12 ? 'am' : 'pm'}`;
-      const endLabel = `${end}${(peakHour.hour + 1) < 12 || peakHour.hour === 23 ? 'am' : 'pm'}`;
+const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
 
-      slides.push({
-        id: 'visitsPerHour',
-        video: shuffledVideos[4],
-        prompt: pickPrompt("peakBrowsingTime", {
-          Start: startLabel,
-          End: endLabel,
-          Count: peakHour.totalVisits
-        }),
-        metric: false,
-        metric_type: null
-      });
+    // Existing slide with prompt
+    slides.push({
+      id: 'visitsPerHour',
+      video: shuffledVideos[4],
+      prompt: pickPrompt("peakBrowsingTime", {
+        Start: `${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`,
+        End: `${((peakHour.hour + 1) % 12) || 12}${(peakHour.hour + 1) < 12 ? 'am' : 'pm'}`,
+        Count: peakHour.totalVisits
+      }),
+      metric: false,
+      metric_type: null
+    });
+
+    // New histogram chart slide
+    slides.push({
+      id: 'visitsPerHourChart',
+      video: null,
+      prompt: "Your browsing activity by hour ⏰",
+      chart: <TimeOfDayHistogram data={visitsPerHour} />,
+      metric: false,
+      metric_type: null
+    });
+
 
 
       // TOP CATEGORY 

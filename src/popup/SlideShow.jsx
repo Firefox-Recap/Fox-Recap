@@ -116,20 +116,65 @@ const SlideShow = ({ setView, timeRange }) => {
         try { return new URL(s.url).hostname; } catch { return null; }
       }).filter(Boolean))].slice(0, 3);
 
+      const formatTopSitesPrompt = (template, topDomains) => {
+        const nonEmpty = topDomains.filter(Boolean);
+      
+        const list = nonEmpty.length === 0
+          ? "no sites"
+          : nonEmpty.length === 1
+          ? nonEmpty[0]
+          : nonEmpty.length === 2
+          ? `${nonEmpty[0]} and ${nonEmpty[1]}`
+          : `${nonEmpty[0]}, ${nonEmpty[1]}, and ${nonEmpty[2]}`;
+      
+        let prompt = template.replace("[TopSites]", list);
+      
+        // 🚀 Fix grammar: was/were
+        if (nonEmpty.length === 1) {
+          prompt = prompt.replace("top sites were", "top site was")
+                         .replace("web hotspots today were", "web hotspot today was")
+                         .replace("tour took you to", "tour took you to") // no grammar issue
+                         .replace("leaderboard today:", "leaderboard today:");
+        }
+      
+        return prompt;
+      };
+      
+      
       if (topDomains.length >= 1) {
-        const [w1, w2, w3] = topDomains;
+        const options = promptsData.prompts.top3Websites || [];
+        const template = options.length
+          ? options[Math.floor(Math.random() * options.length)].text
+          : "Your top sites: [Website 1], [Website 2], [Website 3]";
+      
         slides.push({
           id: 'topSites',
           video: shuffledVideos[2],
-          prompt: pickPrompt("top3Websites", {
-            'Website 1': w1 || '—',
-            'Website 2': w2 || '',
-            'Website 3': w3 || ''
-          }),
+          prompt: formatTopSitesPrompt(template, topDomains),
           metric: false,
           metric_type: null
         });
-      }
+      }      
+      
+      // const topSitesRaw = await bg.getMostVisitedSites(days, 3);
+      // const topDomains = [...new Set(topSitesRaw.map(s => {
+      //   try { return new URL(s.url).hostname; } catch { return null; }
+      // }).filter(Boolean))].slice(0, 3);
+
+      // if (topDomains.length >= 1) {
+      //   const [w1, w2, w3] = topDomains;
+      //   slides.push({
+      //     id: 'topSites',
+      //     video: shuffledVideos[2],
+      //     prompt: pickPrompt("top3Websites", {
+      //       'Website 1': w1 || '—',
+      //       'Website 2': w2 || '',
+      //       'Website 3': w3 || ''
+      //     }),
+      //     metric: false,
+      //     metric_type: null
+      //   });
+      // }
 
       // PEAK BROWSING TIME 
       const visitsPerHour = await bg.getVisitsPerHour(days);

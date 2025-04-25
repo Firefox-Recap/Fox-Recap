@@ -3,34 +3,47 @@ import pluginJs from "@eslint/js";
 
 export default [
   {
-    ignores: ["dist", "node_modules"], // ✅ Force-ignore dist/
-    files: ["src/**/*.js", "models/**/*.js"], // ✅ Lint only source files
+    ignores: ["dist", "node_modules"],
+    files: ["src/**/*.js", "models/**/*.js"],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",
       globals: {
-        ...globals.browser, // ✅ Fixes browser globals (document, window, fetch)
-        ...globals.node, // ✅ Fixes Node.js globals (process, Buffer, console)
+        ...globals.browser,
+        ...globals.node,
         browser: "readonly",
-        WebAssembly: "readonly", // ✅ Fix "WebAssembly is not defined"
-        XMLHttpRequest: "readonly", // ✅ Fix "XMLHttpRequest is not defined"
-        TextDecoder: "readonly", // ✅ Fix "TextDecoder is not defined"
-        performance: "readonly", // ✅ Fix "performance is not defined"
-        crypto: "readonly", // ✅ Fix "crypto is not defined"
-        setTimeout: "readonly", // ✅ Fix "setTimeout is not defined"
-        clearInterval: "readonly", // ✅ Fix "clearInterval is not defined"
+        WebAssembly: "readonly",
+        XMLHttpRequest: "readonly",
+        TextDecoder: "readonly",
+        performance: "readonly",
+        crypto: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        setInterval: "readonly",
+        clearInterval: "readonly",
       }
     },
     rules: {
-      "no-undef": "off",  // ✅ Ignore undefined global variable errors
-      "no-prototype-builtins": "off",  // ✅ Fix "hasOwnProperty" error
-      "no-empty": "off",  // ✅ Allow empty blocks
-      "no-func-assign": "off",  // ✅ Fix function assignment issues
-      "no-fallthrough": "off",  // ✅ Allow case statements without break
-      "no-unused-vars": "warn",  // ✅ Only warn instead of error for unused vars
-      "no-useless-escape": "off", // ✅ Ignore unnecessary escape character errors
-      "no-self-assign": "off", // ✅ Ignore self-assignment errors
-      "no-cond-assign": "off", // ✅ Ignore assignment inside conditions
+      "no-undef": "off",
+      "no-prototype-builtins": "off",
+      "no-empty": "off",
+      "no-func-assign": "off",
+      "no-fallthrough": "off",
+      "no-unused-vars": "warn",
+      "no-useless-escape": "off",
+      "no-self-assign": "off",
+      "no-cond-assign": "off",
+    }
+  },
+  // Add this block for Node.js config files:
+  {
+    files: ["*.config.js", "webpack.config.js", "jest.config.js"],
+    languageOptions: {
+      ecmaVersion: "latest",
+      sourceType: "script",
+      globals: {
+        ...globals.node,
+      }
     }
   },
   pluginJs.configs.recommended,

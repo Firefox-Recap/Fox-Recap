@@ -4,6 +4,7 @@ import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
 import TimeOfDayHistogram from './TimeOfDayHistogram';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
 
 const SlideShow = ({ setView, timeRange }) => {
@@ -52,12 +53,10 @@ const SlideShow = ({ setView, timeRange }) => {
   useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
-      const bg = browser.extension.getBackgroundPage();
+      const bg = await browser.runtime.getBackgroundPage();
       const daysMap = { day: 1, week: 7, month: 30 };
       const days = daysMap[timeRange] || 1;
-
       const slides = [];
-
 
       // INTRO TO RECAP
       slides.push({
@@ -99,7 +98,7 @@ const SlideShow = ({ setView, timeRange }) => {
     //   });
 
       // TOP 3 SITES 
-      const topSitesRaw = await bg.getMostVisitedSites(days, 10);
+      const topSitesRaw = await bg.getMostVisitedSites(days, 3);
       const topDomains = [...new Set(topSitesRaw.map(s => {
         try { return new URL(s.url).hostname; } catch { return null; }
       }).filter(Boolean))].slice(0, 3);
@@ -233,6 +232,72 @@ const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ?
         id: 'recapOutro',
         video: shuffledVideos[9],
         prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] }),
+        metric: false,
+        metric_type: null
+      });
+
+      //Recency & Frequency ---
+      const recencyData = await bg.getRecencyFrequency(days);
+      slides.push({
+        id: 'recencyFrequency',
+        video: null,
+        prompt: '(DEV) Your top sites by recency & frequency 📈',
+        chart: (
+          <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
+            {JSON.stringify(recencyData, null, 2)}
+          </pre>
+        ),
+        metric: false,
+        metric_type: null
+      });
+
+      //Category Co‑occurrence Counts ---
+      const coCounts = await bg.getCOCounts(days);
+      slides.push({
+        id: 'coOccurrence',
+        video: null,
+        prompt: '(DEV) Category co‑occurrence counts 🤝',
+        chart: (
+          <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
+            {JSON.stringify(coCounts, null, 2)}
+          </pre>
+        ),
+        metric: false,
+        metric_type: null
+      });
+
+      //Daily Visit Counts Trend ---
+      const dailyData = await bg.getDailyVisitCounts(days);
+      slides.push({
+        id: 'dailyVisitsChart',
+        video: null,
+        prompt: '(DEV) Your daily visit counts over time 📅',
+        chart: (
+          <LineContainer width="100%" height={300}>
+            <LineChart data={dailyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="count" stroke="#82ca9d" />
+            </LineChart>
+          </LineContainer>
+        ),
+        metric: false,
+        metric_type: null
+      });
+
+      //Full Category Trends Over Time 
+     const fullCategoryTrends = await bg.getCategoryTrends(days);
+     slides.push({
+       id: 'fullCategoryTrends',
+        video: null,
+        prompt: '(DEV)Category trends over time 📊',
+        chart: (
+          <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
+           {JSON.stringify(fullCategoryTrends, null, 2)}
+          </pre>
+        ),
         metric: false,
         metric_type: null
       });

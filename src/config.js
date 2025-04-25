@@ -8,9 +8,6 @@ export const DAYS_MAP = {
   month: 30,
 };
 
-// default time‐ranges for the history
-export const DEFAULT_CONCURRENCY = 5; 
-
 // The link for the blocklist
 export const OISD_BLOCKLIST_URL = 'https://big.oisd.nl/domainswild';
 
@@ -28,3 +25,15 @@ export const CATEGORIES = [
     'Travel',
     'Uncategorized',
   ];
+
+// Threshhold for ML ENGINE 
+export const THRESHOLD = 0.5
+
+export const CONCURRENCY_ENABLED = true; 
+
+export const MLENGINECONFIG = {
+  modelHub: 'huggingface',
+  taskName: 'text-classification',
+  modelId: 'firefoxrecap/URL-TITLE-classifier',
+  dtype: 'q8', // or 'fp32'
+};

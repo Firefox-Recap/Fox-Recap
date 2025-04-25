@@ -1,12 +1,26 @@
-async function waitForMlApi() {
-  while (typeof browser.trial?.ml?.createEngine !== 'function') {
-    console.warn('ML API not available make sure you have permissions');
-    await new Promise((r) => setTimeout(r, 5000));
-  }
+import {MLENGINECONFIG} from "../../config";
+async function waitForMlApi(timeout = 30000, interval = 1000) {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      if (typeof browser.trial?.ml?.createEngine === 'function') {
+        return resolve();
+      }
+      if (Date.now() - start >= timeout) {
+        return reject(new Error(`ML API did not appear within ${timeout}ms`));
+      }
+      setTimeout(check, interval);
+    };
+    check();
+  });
 }
 
 export async function ensureEngineIsReady() {
-  await waitForMlApi();
+  try {
+    await waitForMlApi(30000, 500);
+  } catch (err) {
+    throw new Error('Failed to detect ML API: ' + err.message);
+  }
   const mlApi = browser.trial.ml;
 
   // Have we already created the engine this session?
@@ -27,13 +41,8 @@ export async function ensureEngineIsReady() {
     }
   }
 
-  // Create the engine // currently hardcoded to use a specific model
-  await mlApi.createEngine({
-    modelHub: 'huggingface',
-    taskName: 'text-classification',
-    modelId: 'firefoxrecap/URL-TITLE-classifier',
-    dtype: 'q8', // or fp32
-  });
+  // Create the engine 
+  await mlApi.createEngine(MLENGINECONFIG);
 
   // Mark as created so we skip this next time
   await browser.storage.session.set({engineCreated: true});

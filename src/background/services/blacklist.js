@@ -71,9 +71,6 @@ export function loadBlocklist() {
   return blocklistLoadPromise;
 }
 
-// Kick off initial load
-loadBlocklist();
-
 /**
  * Return true if the given URL’s hostname is on the blocklist.
  * Waits until the list is loaded before checking.

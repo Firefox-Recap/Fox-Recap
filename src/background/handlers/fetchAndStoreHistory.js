@@ -1,75 +1,100 @@
 import pLimit from 'p-limit';
 import { db } from '../initdb.js';
 import { shouldBlockDomain } from '../services/blacklist.js';
-import {
-  storeHistoryItems,
-} from '../services/db.js';
 import { ensureEngineIsReady, classifyURLAndTitle } from '../services/ml.js';
-import { MS_PER_DAY } from '../../config.js';
+import { MS_PER_DAY, THRESHOLD } from '../../config.js';
+import { getConcurrencyLimit } from '../../util.js';
 
 export async function fetchAndStoreHistory(days) {
-  const now = Date.now();
-  const startTime = now - days * MS_PER_DAY;
-  const items = await browser.history.search({ text: '', startTime, endTime: now, maxResults: 1e6 }); 
-  // explain why maxResults is set to 1e6 bascially we just need all the all the history items of the day.
-  const checks = await Promise.all(
-    items.map(async i => ({ item: i, blocked: await shouldBlockDomain(i.url) }))
-  );
-  const validItems = checks.filter(r => !r.blocked).map(r => r.item);
-  if (!validItems.length) return console.debug('No valid history items found.');
+  const endTime   = Date.now();
+  const startTime = endTime - days * MS_PER_DAY;
 
-  const keys   = validItems.map(i => [i.url, i.lastVisitTime]);
-  const exists = await db.historyItems.bulkGet(keys);
-  const newItems = validItems.filter((_, idx) => !exists[idx]);
-  if (!newItems.length) return console.log('No new history items to store.');
-  console.debug(`Processing ${newItems.length} new history items…`);
-
-  await db.transaction('rw', db.historyItems, async () => {
-    await storeHistoryItems(newItems);
+  // grab all history, filter blocked
+  const raw = await browser.history.search({
+    text: '', startTime, endTime, maxResults: 1e6
   });
+  const valid = [];
+  for (const i of raw) {
+    if (!(await shouldBlockDomain(i.url))) valid.push(i);
+  }
+  if (!valid.length) return console.debug('No valid history items found.');
 
-  const threshold = 0.5;
+  // dedupe by [url + lastVisitTime]
+  // 1) de‑dupe against historyItems
+  const histKeys = valid.map(i => [i.url, i.lastVisitTime]);
+  const histExists = await db.historyItems.bulkGet(histKeys);
+
+  // 2) de‑dupe against categories (only classify once)
+  const catKeys = valid.map(i => i.url);
+  const catExists = await db.categories.bulkGet(catKeys);
+
+  // 3) only keep ones missing in _both_ tables
+  const fresh = valid.filter((_, idx) => !histExists[idx] && !catExists[idx]);
+  if (!fresh.length) 
+    return console.debug('No new history items to store.');
+
+  // ensure ML engine only once
   await ensureEngineIsReady();
+  const limit       = pLimit(getConcurrencyLimit());
+  const tasks       = fresh.map(item => limit(async () => {
+    const visits     = await browser.history.getVisits({ url: item.url });
+    const categories = await classifyURLAndTitle(
+      item.url, item.title ?? '', THRESHOLD, true
+    );
+    return { item, visits, categories };
+  }));
+  const results     = await Promise.allSettled(tasks);
 
-  const limit = pLimit(5);
-  const tasks = newItems.map(item =>
-    limit(async () => {
-      const visits    = await browser.history.getVisits({ url: item.url });
-      const categories = await classifyURLAndTitle(item.url, item.title ?? '', threshold, true);
-      return { item, visits, categories };
-    })
-  );
-  const results = await Promise.allSettled(tasks);
+  // batch up writes
+  const histBulk    = [];
+  const visitsBulk  = [];
+  const catBulk     = [];
 
-  const visitDetailsBulk = [];
-  const categoriesBulk = [];
-  for (const res of results) {
-    if (res.status === 'fulfilled') {
-      const { item, visits, categories } = res.value;
+  for (const r of results) {
+    if (r.status === 'fulfilled') {
+      const { item, visits, categories } = r.value;
+      // historyItems
+      histBulk.push({
+        url: item.url,
+        title: item.title,
+        lastVisitTime: item.lastVisitTime,
+        visitCount: item.visitCount,
+        typedCount: item.typedCount
+      });
+      // visitDetails
       for (const v of visits) {
-        visitDetailsBulk.push({
-          visitId:            v.visitId,
-          url:                item.url,
-          visitTime:          v.visitTime,
-          referringVisitId:   v.referringVisitId,
-          transition:         v.transition,
+        visitsBulk.push({
+          visitId: v.visitId,
+          url: item.url,
+          visitTime: v.visitTime,
+          referringVisitId: v.referringVisitId,
+          transition: v.transition
         });
       }
-      categoriesBulk.push({
-        url:           item.url,
+      // categories
+      catBulk.push({
+        url: item.url,
         categories,
-        lastVisitTime: item.lastVisitTime,
+        lastVisitTime: item.lastVisitTime
       });
     } else {
-      console.error('Error processing item:', res.reason);
+      console.error('History item failed:', r.reason);
     }
   }
 
-  await db.transaction('rw', db.visitDetails, db.categories, async () => {
-    if (visitDetailsBulk.length) await db.visitDetails.bulkPut(visitDetailsBulk);
-    if (categoriesBulk.length)  await db.categories.bulkPut(categoriesBulk);
-  });
+  // one atomic transaction over all three tables
+  await db.transaction(
+    'rw',
+    db.historyItems,
+    db.visitDetails,
+    db.categories,
+    async () => {
+      if (histBulk.length)   await db.historyItems.bulkPut(histBulk);
+      if (visitsBulk.length) await db.visitDetails.bulkPut(visitsBulk);
+      if (catBulk.length)    await db.categories.bulkPut(catBulk);
+    }
+  );
 
-  console.debug(`Completed processing ${newItems.length} new history items`);
-  return newItems.length;
+  console.debug(`Processed ${histBulk.length} new history items`);
+  return histBulk.length;
 }

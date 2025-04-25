@@ -7,6 +7,7 @@ export { getDailyVisitCounts }    from './getDailyVisitCounts.js';
 export { getCategoryTrends }      from './getCategoryTrends.js';
 export { getTransitionPatterns }  from './getTransitionPatterns.js';
 export { getRecencyFrequency }    from './getRecencyFrequency.js';
+export { getUniqueWebsites }    from './getUniqueWebsites.js';
 
 import * as handlers from './index.js';
 export default handlers;

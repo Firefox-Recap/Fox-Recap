@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI
 
 on:
   push:
@@ -7,79 +7,44 @@ on:
       - develop
   pull_request:
     branches:
-      - main
       - develop
 
 jobs:
-  lint:
-    name: lint
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
+      - name: Use Node.js 18.x
+        uses: actions/setup-node@v3
         with:
           node-version: '18.x'
-
-      - name: Enable ES Modules
-        run: echo "NODE_OPTIONS=--experimental-specifier-resolution=node" >> $GITHUB_ENV
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint code (Ignoring dist/)
-        run: npx eslint . --fix --no-cache --ignore-pattern 'dist/'
+      - name: Lint (ESLint)
+        run: npm run lint
 
-  test:
-    name: test
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      #  We dont have any test yet
+      # - name: Run tests (Jest) 
+      #   run: npm test
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18.x'
-
-      - name: Enable ES Modules
-        run: echo "NODE_OPTIONS=--experimental-specifier-resolution=node" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Transformers.js Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libnss3 libatk-bridge2.0-0 libx11-xcb1
-          
-      - name: Run tests
-        run: npm test
-
-  build:
-    name: build
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18.x'
-
-      - name: Enable ES Modules
-        run: echo "NODE_OPTIONS=--experimental-specifier-resolution=node" >> $GITHUB_ENV
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build project
+      - name: Build (Webpack)
         run: npm run build
-        
-      - name: Check WebAssembly Assets
-        run: ls -lh dist/assets
+
+      # This doesnt really work yet we need to figure this out
+      # - name: Package Firefox Extension
+      #   run: npm run build:ext
+
+      - name: Generate docs (JSDoc)
+        run: npm run docs
+
+      # This doesnt work yet need to figure this out
+      # - name: Upload extension artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: firefox-recap-extension
+      #     path: web-ext-artifacts/*.zip

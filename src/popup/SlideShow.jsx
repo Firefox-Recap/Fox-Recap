@@ -21,6 +21,7 @@ const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [progress, setProgress] = useState(0);
   const videoRef = useRef(null);
 
   const backgroundVideos = [
@@ -52,15 +53,16 @@ const SlideShow = ({ setView, timeRange }) => {
     return array;
   };
 
-
   useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
       const daysMap = { day: 1, week: 7, month: 30 };
       const days = daysMap[timeRange] || 1;
+
       console.log("[SlideShow] Fetching and storing history...");
       await safeCallBackground("fetchAndStoreHistory", { days });
       console.log("[SlideShow] History fetch complete, loading slides...");
+
       const slides = [];
       const videos = shuffle([...backgroundVideos]);
 
@@ -180,24 +182,69 @@ const SlideShow = ({ setView, timeRange }) => {
 
       setSlides(slides);
       setLoading(false);
+      setProgress(100);
     };
 
     loadSlides();
   }, [timeRange]);
 
   useEffect(() => {
+    if (!loading) return;
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev < 90) {
+          return prev + Math.random() * 5;
+        } else {
+          return prev;
+        }
+      });
+    }, 200);
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  useEffect(() => {
     if (videoRef.current) videoRef.current.load();
   }, [index]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev)), 5000);
+    const timer = setTimeout(() => {
+      setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev));
+    }, 5000);
     return () => clearTimeout(timer);
   }, [index, slides.length]);
 
-  if (loading) {
-    return <div className="spinner-overlay"><div className="spinner" /></div>;
+  // 🚀 LOADING SCREEN while slides are being fetched
+  if (loading || progress < 100) {
+    return (
+      <div style={{
+        height: '100vh',
+        background: 'black',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        color: 'white'
+      }}>
+        <h1 style={{ marginBottom: '20px' }}>Preparing your recap...</h1>
+        <div style={{
+          width: '80%',
+          height: '8px',
+          backgroundColor: '#555',
+          borderRadius: '5px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            width: `${progress}%`,
+            height: '100%',
+            backgroundColor: '#00C853',
+            transition: 'width 0.5s ease-in-out'
+          }}></div>
+        </div>
+      </div>
+    );
   }
 
+  // 🚀 SLIDESHOW UI after loading
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
       <video ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
@@ -210,7 +257,9 @@ const SlideShow = ({ setView, timeRange }) => {
         {slides[index]?.chart ? (
           <>
             <h1 style={{ color: '#fff', textAlign: 'center', marginBottom: '1rem' }}>{slides[index].prompt}</h1>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100% - 100px)' }}>{slides[index].chart}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100% - 100px)' }}>
+              {slides[index].chart}
+            </div>
           </>
         ) : (
           <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>{slides[index]?.prompt}</h1>

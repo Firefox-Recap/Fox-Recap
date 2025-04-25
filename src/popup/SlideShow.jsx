@@ -4,6 +4,7 @@ import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
 import TimeOfDayHistogram from './TimeOfDayHistogram';
+import CategoryTrendsLineChart from './CategoryTrendsLineChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
 
@@ -86,16 +87,28 @@ const SlideShow = ({ setView, timeRange }) => {
         metric_type: "count"
       });
 
-
-      // HERE I WANT TO ADD A SLIDE FOR TOTAL NUMBER OF SITES 
-
-    //   slides.push({
-    //     id: 'totalWebsites',
-    //     video: shuffledVideos[7],
-    //     prompt:
-    //     metric: false,
-    //     metric_type: null
-    //   });
+      // Daily Visit Counts Trend — only show for week or month
+      if (timeRange !== 'day') {
+        const dailyData = await bg.getDailyVisitCounts(days);
+        slides.push({
+          id: 'dailyVisitsChart',
+          video: null,
+          prompt: 'Your daily visit counts over time 📅',
+          chart: (
+            <LineContainer width="100%" height={300}>
+              <LineChart data={dailyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke="#82ca9d" />
+              </LineChart>
+            </LineContainer>
+          ),
+          metric: false,
+          metric_type: null
+        });
+      }
 
       // TOP 3 SITES 
       const topSitesRaw = await bg.getMostVisitedSites(days, 3);
@@ -103,54 +116,111 @@ const SlideShow = ({ setView, timeRange }) => {
         try { return new URL(s.url).hostname; } catch { return null; }
       }).filter(Boolean))].slice(0, 3);
 
+      const formatTopSitesPrompt = (template, topDomains) => {
+        const nonEmpty = topDomains.filter(Boolean);
+      
+        const list = nonEmpty.length === 0
+          ? "no sites"
+          : nonEmpty.length === 1
+          ? nonEmpty[0]
+          : nonEmpty.length === 2
+          ? `${nonEmpty[0]} and ${nonEmpty[1]}`
+          : `${nonEmpty[0]}, ${nonEmpty[1]}, and ${nonEmpty[2]}`;
+      
+        let prompt = template.replace("[TopSites]", list);
+      
+        // 🚀 Fix grammar: was/were
+        if (nonEmpty.length === 1) {
+          prompt = prompt.replace("top sites were", "top site was")
+                         .replace("web hotspots today were", "web hotspot today was")
+                         .replace("tour took you to", "tour took you to") // no grammar issue
+                         .replace("leaderboard today:", "leaderboard today:");
+        }
+      
+        return prompt;
+      };
+      
+      
       if (topDomains.length >= 1) {
-        const [w1, w2, w3] = topDomains;
+        const options = promptsData.prompts.top3Websites || [];
+        const template = options.length
+          ? options[Math.floor(Math.random() * options.length)].text
+          : "Your top sites: [Website 1], [Website 2], [Website 3]";
+      
         slides.push({
           id: 'topSites',
           video: shuffledVideos[2],
-          prompt: pickPrompt("top3Websites", {
-            'Website 1': w1 || '—',
-            'Website 2': w2 || '',
-            'Website 3': w3 || ''
+          prompt: formatTopSitesPrompt(template, topDomains),
+          metric: false,
+          metric_type: null
+        });
+      }      
+      
+      // const topSitesRaw = await bg.getMostVisitedSites(days, 3);
+      // const topDomains = [...new Set(topSitesRaw.map(s => {
+      //   try { return new URL(s.url).hostname; } catch { return null; }
+      // }).filter(Boolean))].slice(0, 3);
+
+      // if (topDomains.length >= 1) {
+      //   const [w1, w2, w3] = topDomains;
+      //   slides.push({
+      //     id: 'topSites',
+      //     video: shuffledVideos[2],
+      //     prompt: pickPrompt("top3Websites", {
+      //       'Website 1': w1 || '—',
+      //       'Website 2': w2 || '',
+      //       'Website 3': w3 || ''
+      //     }),
+      //     metric: false,
+      //     metric_type: null
+      //   });
+      // }
+
+      // PEAK BROWSING TIME 
+      const visitsPerHour = await bg.getVisitsPerHour(days);
+      const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
+
+      slides.push({
+        id: 'visitsPerHour',
+        video: shuffledVideos[4],
+        prompt: pickPrompt("peakBrowsingTime", {
+          Start: `${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`,
+          End: `${((peakHour.hour + 1) % 12) || 12}${(peakHour.hour + 1) < 12 ? 'am' : 'pm'}`,
+          Count: peakHour.totalVisits
+        }),
+        metric: false,
+        metric_type: null
+      });
+
+      slides.push({
+        id: 'visitsPerHourChart',
+        video: null,
+        prompt: "Your browsing activity by hour ⏰",
+        chart: <TimeOfDayHistogram data={visitsPerHour} />,
+        metric: false,
+        metric_type: null
+      });
+
+      // BUSIEST DAY 
+      const dailyCounts = await bg.getDailyVisitCounts(days);
+      const mostVisitedDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
+      if (mostVisitedDay) {
+        slides.push({
+          id: 'busiestDay',
+          video: shuffledVideos[6],
+          prompt: pickPrompt("busiestDay", {
+            Date: mostVisitedDay.date,
+            Count: mostVisitedDay.count
           }),
           metric: false,
           metric_type: null
         });
       }
 
-
-      // PEAK BROWSING TIME 
-      const visitsPerHour = await bg.getVisitsPerHour(days);
-const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
-
-    // Existing slide with prompt
-    slides.push({
-      id: 'visitsPerHour',
-      video: shuffledVideos[4],
-      prompt: pickPrompt("peakBrowsingTime", {
-        Start: `${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`,
-        End: `${((peakHour.hour + 1) % 12) || 12}${(peakHour.hour + 1) < 12 ? 'am' : 'pm'}`,
-        Count: peakHour.totalVisits
-      }),
-      metric: false,
-      metric_type: null
-    });
-
-    // New histogram chart slide
-    slides.push({
-      id: 'visitsPerHourChart',
-      video: null,
-      prompt: "Your browsing activity by hour ⏰",
-      chart: <TimeOfDayHistogram data={visitsPerHour} />,
-      metric: false,
-      metric_type: null
-    });
-
       // TOP CATEGORY 
       const labelCounts = await bg.getLabelCounts(days);
       const topCategory = labelCounts.sort((a, b) => b.count - a.count)[0];
 
-      // Format all categories for radar chart
       const categoryChartData = labelCounts.map(item => ({
         category: item.categories[0],
         count: item.count
@@ -179,22 +249,6 @@ const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ?
       }
 
 
-      // BUSIEST DAY 
-      const dailyCounts = await bg.getDailyVisitCounts(days);
-      const mostVisitedDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
-      if (mostVisitedDay) {
-        slides.push({
-          id: 'busiestDay',
-          video: shuffledVideos[6],
-          prompt: pickPrompt("busiestDay", {
-            Date: mostVisitedDay.date,
-            Count: mostVisitedDay.count
-          }),
-          metric: false,
-          metric_type: null
-        });
-      }
-
       // TRENDING CATEGORY ON DATE 
       const categoryTrends = await bg.getCategoryTrends(days);
       const topTrend = categoryTrends.sort((a, b) => b.categories[0].count - a.categories[0].count)[0];
@@ -210,6 +264,38 @@ const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ?
           metric_type: null
         });
       }
+
+      // //TRENDING CATEGORY OVER TIME 
+      // const fullCategoryTrends = await bg.getCategoryTrends(days);
+
+      // const allLabels = new Set();
+      // fullCategoryTrends.forEach(day => {
+      //   day.categories.forEach(cat => {
+      //     allLabels.add(cat.label);
+      //   });
+      // });
+
+      // const formattedTrendData = fullCategoryTrends.map(day => {
+      //   const row = { date: day.date };
+      //   allLabels.forEach(label => {
+      //     row[label] = 0;
+      //   });
+      //   day.categories.forEach(cat => {
+      //     row[cat.label] = cat.count;
+      //   });
+      //   return row;
+      // });
+
+      // if (timeRange !== 'day' && formattedTrendData.length > 0) {
+      //   slides.push({
+      //     id: 'fullCategoryTrends',
+      //     video: null,
+      //     prompt: 'Category trends over time 📊',
+      //     chart: <CategoryTrendsLineChart data={formattedTrendData} />,
+      //     metric: false,
+      //     metric_type: null
+      //   });
+      // }     
 
       // MOST COMMON JUMP 
       const transitionPatterns = await bg.getTransitionPatterns(days);
@@ -237,70 +323,50 @@ const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ?
       });
 
       //Recency & Frequency ---
-      const recencyData = await bg.getRecencyFrequency(days);
-      slides.push({
-        id: 'recencyFrequency',
-        video: null,
-        prompt: '(DEV) Your top sites by recency & frequency 📈',
-        chart: (
-          <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
-            {JSON.stringify(recencyData, null, 2)}
-          </pre>
-        ),
-        metric: false,
-        metric_type: null
-      });
+      // const recencyData = await bg.getRecencyFrequency(days);
+      // slides.push({
+      //   id: 'recencyFrequency',
+      //   video: null,
+      //   prompt: '(DEV) Your top sites by recency & frequency 📈',
+      //   chart: (
+      //     <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
+      //       {JSON.stringify(recencyData, null, 2)}
+      //     </pre>
+      //   ),
+      //   metric: false,
+      //   metric_type: null
+      // });
 
       //Category Co‑occurrence Counts ---
-      const coCounts = await bg.getCOCounts(days);
-      slides.push({
-        id: 'coOccurrence',
-        video: null,
-        prompt: '(DEV) Category co‑occurrence counts 🤝',
-        chart: (
-          <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
-            {JSON.stringify(coCounts, null, 2)}
-          </pre>
-        ),
-        metric: false,
-        metric_type: null
-      });
+      // const coCounts = await bg.getCOCounts(days);
+      // slides.push({
+      //   id: 'coOccurrence',
+      //   video: null,
+      //   prompt: '(DEV) Category co‑occurrence counts 🤝',
+      //   chart: (
+      //     <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
+      //       {JSON.stringify(coCounts, null, 2)}
+      //     </pre>
+      //   ),
+      //   metric: false,
+      //   metric_type: null
+      // }); 
 
-      //Daily Visit Counts Trend ---
-      const dailyData = await bg.getDailyVisitCounts(days);
-      slides.push({
-        id: 'dailyVisitsChart',
-        video: null,
-        prompt: '(DEV) Your daily visit counts over time 📅',
-        chart: (
-          <LineContainer width="100%" height={300}>
-            <LineChart data={dailyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="count" stroke="#82ca9d" />
-            </LineChart>
-          </LineContainer>
-        ),
-        metric: false,
-        metric_type: null
-      });
 
       //Full Category Trends Over Time 
-     const fullCategoryTrends = await bg.getCategoryTrends(days);
-     slides.push({
-       id: 'fullCategoryTrends',
-        video: null,
-        prompt: '(DEV)Category trends over time 📊',
-        chart: (
-          <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
-           {JSON.stringify(fullCategoryTrends, null, 2)}
-          </pre>
-        ),
-        metric: false,
-        metric_type: null
-      });
+    //  const fullCategoryTrends = await bg.getCategoryTrends(days);
+    //  slides.push({
+    //    id: 'fullCategoryTrends',
+    //     video: null,
+    //     prompt: '(DEV)Category trends over time 📊',
+    //     chart: (
+    //       <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
+    //        {JSON.stringify(fullCategoryTrends, null, 2)}
+    //       </pre>
+    //     ),
+    //     metric: false,
+    //     metric_type: null
+    //   });
 
       setSlides(slides);
       setLoading(false);

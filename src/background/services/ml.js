@@ -1,4 +1,5 @@
-import {MLENGINECONFIG} from "../../config";
+import { get as levenshteinDistance } from 'fast-levenshtein';
+import { MLENGINECONFIG, ML_CACHE_SIMILARITY_THRESHOLD } from "../../config";
 async function waitForMlApi(timeout = 30000, interval = 1000) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -62,6 +63,19 @@ export async function classifyURLAndTitle(
   if (!skipInit) {
     await ensureEngineIsReady();
   }
+
+  // 1) Try the cache first
+  const cached = await getCachedClassification(
+    url,
+    title,
+    ML_CACHE_SIMILARITY_THRESHOLD
+  );
+  if (cached) {
+    console.debug('ML cache hit:', url);
+    return cached;
+  }
+
+  // 2) Fallback to ML engine
   const mlApi = browser.trial.ml;
   if (typeof mlApi.runEngine !== 'function') {
     throw new Error('ML runtime missing runEngine()');
@@ -73,11 +87,47 @@ export async function classifyURLAndTitle(
     options: { top_k: null },
   });
 
-  return result
-    .filter((item) => item.score >= threshold)
-    .map((item) => ({
-      // treat null labels as "Uncategorized"
+  const mapped = result
+    .filter(item => item.score >= threshold)
+    .map(item => ({
       label: item.label ?? 'Uncategorized',
       score: item.score,
     }));
+
+  // 3) Store into cache for next time
+  await addToCache(url, title, mapped);
+
+  return mapped;
+}
+
+// Simple similarity: longest common substring ratio.
+// Feel free to replace with e.g. Levenshtein or Jaro‐Winkler for better accuracy.
+function stringSimilarity(a = '', b = '') {
+  const maxLen = Math.max(a.length, b.length);
+  if (maxLen === 0) return 1;
+  const dist = levenshteinDistance(a, b);
+  return (maxLen - dist) / maxLen;
+}
+
+async function getCachedClassification(url, title, simThreshold = ML_CACHE_SIMILARITY_THRESHOLD) {
+  const { cachedClassifications = [] } = await browser.storage.local.get({
+    cachedClassifications: []
+  });
+
+  for (let entry of cachedClassifications) {
+    let simUrl = stringSimilarity(url, entry.url);
+    let simTitle = stringSimilarity(title, entry.title);
+    if (Math.max(simUrl, simTitle) >= simThreshold) {
+      return entry.labels;
+    }
+  }
+  return null;
+}
+
+async function addToCache(url, title, labels) {
+  const { cachedClassifications = [] } = await browser.storage.local.get({
+    cachedClassifications: []
+  });
+  cachedClassifications.push({ url, title, labels });
+  await browser.storage.local.set({ cachedClassifications });
 }

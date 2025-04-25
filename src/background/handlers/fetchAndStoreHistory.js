@@ -37,10 +37,15 @@ export async function fetchAndStoreHistory(days) {
   await ensureEngineIsReady();
   const limit       = pLimit(getConcurrencyLimit());
   const tasks       = fresh.map(item => limit(async () => {
-    const visits     = await browser.history.getVisits({ url: item.url });
-    const categories = await classifyURLAndTitle(
-      item.url, item.title ?? '', THRESHOLD, true
-    );
+    const visits = await browser.history.getVisits({ url: item.url });
+    let categories;
+    try {
+      // this will first check your ML cache, then run the engine if needed
+      categories = await classifyURLAndTitle(item.url, item.title ?? '', THRESHOLD, true);
+    } catch (e) {
+      console.error('ML classification failed for', item.url, e);
+      categories = [{ label: 'Uncategorized', score: 1 }];
+    }
     return { item, visits, categories };
   }));
   const results     = await Promise.allSettled(tasks);

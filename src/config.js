@@ -29,6 +29,8 @@ export const CATEGORIES = [
 // Threshhold for ML ENGINE 
 export const THRESHOLD = 0.5
 
+export const ML_CACHE_SIMILARITY_THRESHOLD = 0.8;
+
 export const CONCURRENCY_ENABLED = true; 
 
 export const MLENGINECONFIG = {

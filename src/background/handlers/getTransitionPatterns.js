@@ -1,6 +1,39 @@
+/**
+ * @fileoverview
+ * Generate transition patterns between visited URLs over a specified time window.
+ * 
+ * @module background/handlers/getTransitionPatterns
+ */
+
 import { db } from '../initdb.js';
 import { MS_PER_DAY } from '../../config.js';
 
+/**
+ * A single transition pattern between two URLs.
+ * @typedef {Object} TransitionPattern
+ * @property {string} from - The source URL of the transition.
+ * @property {string} to - The destination URL of the transition.
+ * @property {number} count - How many times this exact transition occurred.
+ */
+
+/**
+ * Summary statistics for the transition patterns.
+ * @typedef {Object} TransitionSummary
+ * @property {number} totalTransitions - Total number of transitions observed.
+ * @property {number} uniquePatterns - Number of unique transition pairs.
+ * @property {TransitionPattern|null} topPattern - The single most frequent transition, or `null` if none.
+ */
+
+/**
+ * Fetch and analyze URL-to-URL transitions from visitDetails in the past `days` days.
+ *
+ * @async
+ * @param {number} days - Look‑back window in days.
+ * @returns {Promise<{
+ *   patterns: TransitionPattern[],
+ *   summary: TransitionSummary
+ * }>} An object containing the top 10 transitions and a summary.
+ */
 export async function getTransitionPatterns(days) {
     const cutoff = Date.now() - days * MS_PER_DAY;
 

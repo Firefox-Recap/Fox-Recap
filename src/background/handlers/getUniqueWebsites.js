@@ -1,10 +1,24 @@
+/**
+ * @fileoverview
+ * Fetch and count the number of unique website domains visited
+ * within a specified look‑back window.
+ *
+ * @module background/handlers/getUniqueWebsites
+ */
+
 import { db } from '../initdb.js';
 import { parse } from 'tldts';
+import { MS_PER_DAY } from '../../config.js';
 
-// This function identifies unique websites visited.
-
+/**
+ * Get the number of unique domains visited in the last `days` days.
+ *
+ * @async
+ * @param {number} days - Look‑back window in days.
+ * @returns {Promise<number>} Resolves with the count of unique domains.
+ */
 export async function getUniqueWebsites(days) {
-  const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - days * MS_PER_DAY;
   const uniqueDomains = new Set();
 
   await db.historyItems

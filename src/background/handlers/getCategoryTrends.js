@@ -1,6 +1,29 @@
+/**
+ * @fileoverview
+ * Generate daily category trends data over a specified time window.
+ */
+
 import { db } from '../initdb.js';
 import { MS_PER_DAY } from '../../config.js';
 
+/**
+ * Get category trends for each day in the past `days` days.
+ *
+ * @async
+ * @param {number} days
+ *   How many days of history to include (e.g. 7 for the last week).
+ * @returns {Promise<Array<Object>>}
+ *   Resolves to an array of daily trend objects up bounded to 10 objects, sorted by date:
+ *   [
+ *     {
+ *       date: string,           // ISO date (YYYY-MM-DD)
+ *       categories: [           // Sorted by descending count
+ *         { label: string, count: number }
+ *       ]
+ *     },
+ *     ...
+ *   ]
+ */
 export async function getCategoryTrends(days) {
   const cutoff = Date.now() - days * MS_PER_DAY;
 

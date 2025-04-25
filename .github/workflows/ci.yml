@@ -27,7 +27,7 @@ jobs:
         run: echo "NODE_OPTIONS=--experimental-specifier-resolution=node" >> $GITHUB_ENV
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint code (Ignoring dist/)
         run: npx eslint . --fix --no-cache --ignore-pattern 'dist/'
@@ -49,7 +49,7 @@ jobs:
         run: echo "NODE_OPTIONS=--experimental-specifier-resolution=node" >> $GITHUB_ENV
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Install Transformers.js Dependencies
         run: |
@@ -76,7 +76,7 @@ jobs:
         run: echo "NODE_OPTIONS=--experimental-specifier-resolution=node" >> $GITHUB_ENV
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build project
         run: npm run build

@@ -1,3 +1,11 @@
+/**
+ * @fileoverview
+ * Fetches browser history over a given time window, filters out
+ * blocked domains, deduplicates against existing IndexedDB records,
+ * runs ML classification on new URLs, and stores history items,
+ * visit details, and categories in the database in a single atomic transaction.
+ */
+
 import pLimit from 'p-limit';
 import { db } from '../initdb.js';
 import { shouldBlockDomain } from '../services/blacklist.js';
@@ -5,6 +13,23 @@ import { ensureEngineIsReady, classifyURLAndTitle } from '../services/ml.js';
 import { MS_PER_DAY, THRESHOLD } from '../../config.js';
 import { getConcurrencyLimit } from '../../util.js';
 
+/**
+ * Fetch and store new browsing history items.
+ *
+ * This function:
+ * 1. Retrieves all history entries in the past {@link days} days.
+ * 2. Filters out any URLs whose domain is on the blocklist.
+ * 3. Deduplicates against existing `historyItems` and `categories` stores.
+ * 4. Ensures the ML engine is ready.
+ * 5. Classifies each new URL (with caching) in parallel (bounded by {@link getConcurrencyLimit}).
+ * 6. Writes history items, visit details, and category labels in a single Dexie transaction.
+ *
+ * @async
+ * @function fetchAndStoreHistory
+ * @param {number} days - How many days of history to fetch.
+ * @returns {Promise<number>} Resolves with the number of new history items written.
+ * @throws Will rethrow any Dexie or browser API errors.
+ */
 export async function fetchAndStoreHistory(days) {
   const endTime   = Date.now();
   const startTime = endTime - days * MS_PER_DAY;
@@ -35,8 +60,8 @@ export async function fetchAndStoreHistory(days) {
 
   // ensure ML engine only once
   await ensureEngineIsReady();
-  const limit       = pLimit(getConcurrencyLimit());
-  const tasks       = fresh.map(item => limit(async () => {
+  const limit  = pLimit(getConcurrencyLimit());
+  const tasks  = fresh.map(item => limit(async () => {
     const visits = await browser.history.getVisits({ url: item.url });
     let categories;
     try {
@@ -48,12 +73,12 @@ export async function fetchAndStoreHistory(days) {
     }
     return { item, visits, categories };
   }));
-  const results     = await Promise.allSettled(tasks);
+  const results = await Promise.allSettled(tasks);
 
   // batch up writes
-  const histBulk    = [];
-  const visitsBulk  = [];
-  const catBulk     = [];
+  const histBulk   = [];
+  const visitsBulk = [];
+  const catBulk    = [];
 
   for (const r of results) {
     if (r.status === 'fulfilled') {

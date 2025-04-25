@@ -7,6 +7,15 @@ import TimeOfDayHistogram from './TimeOfDayHistogram';
 import CategoryTrendsLineChart from './CategoryTrendsLineChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
+const safeCallBackground = async (action, payload = {}) => {
+  try {
+    const response = await browser.runtime.sendMessage({ action, ...payload });
+    return response;
+  } catch (error) {
+    console.error(`[callBackground error: ${action}]`, error);
+    return null;
+  }
+};
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
@@ -21,18 +30,12 @@ const SlideShow = ({ setView, timeRange }) => {
     '/assets/videos/10.mp4'
   ];
 
-  const timeRangeMap = {
-    day: "today",
-    week: "this week",
-    month: "this month",
-  };
+  const timeRangeMap = { day: "today", week: "this week", month: "this month" };
 
   const pickPrompt = (section, replacements = {}) => {
     const options = promptsData.prompts[section] || [];
     if (!options.length) return '';
-
     const template = options[Math.floor(Math.random() * options.length)].text;
-
     return Object.entries(replacements).reduce(
       (result, [key, val]) => result.replaceAll(`[${key}]`, val),
       template
@@ -49,324 +52,131 @@ const SlideShow = ({ setView, timeRange }) => {
     return array;
   };
 
-  const shuffledVideos = shuffle([...backgroundVideos]);
 
   useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
-      const bg = await browser.runtime.getBackgroundPage();
       const daysMap = { day: 1, week: 7, month: 30 };
       const days = daysMap[timeRange] || 1;
+      console.log("[SlideShow] Fetching and storing history...");
+      await safeCallBackground("fetchAndStoreHistory", { days });
+      console.log("[SlideShow] History fetch complete, loading slides...");
       const slides = [];
+      const videos = shuffle([...backgroundVideos]);
 
-      // INTRO TO RECAP
       slides.push({
         id: 'intro',
-        video: shuffledVideos[0],
+        video: videos[0],
         prompt: pickPrompt("introRecap", { x: timeRangeMap[timeRange] }),
         metric: false,
-        metric_type: null
       });
 
-      // INTRO TO TOTAL WEBSITES
       slides.push({
         id: 'totalVisits',
-        video: shuffledVideos[1],
+        video: videos[1],
         prompt: pickPrompt("introToTotalWebsites", { x: timeRangeMap[timeRange] }),
         metric: false,
-        metric_type: null
-      });
-      
-      // UNIQUE WEBSITES VISITED
-      const totalUnique = await bg.getUniqueWebsites(days);
-      slides.push({
-        id: 'totalWebsites',
-        video: shuffledVideos[2],
-        prompt: `You visited ${totalUnique.toLocaleString()} unique websites ${timeRangeMap[timeRange]}.`,
-        metric: true,
-        metric_type: "count"
       });
 
-      // Daily Visit Counts Trend — only show for week or month
+      const totalUnique = await safeCallBackground("getUniqueWebsites", { days });
+      slides.push({
+        id: 'totalWebsites',
+        video: videos[2],
+        prompt: `You visited ${typeof totalUnique === 'number' ? totalUnique.toLocaleString() : '0'} unique websites ${timeRangeMap[timeRange]}.`,
+        metric: true,
+      });
+
       if (timeRange !== 'day') {
-        const dailyData = await bg.getDailyVisitCounts(days);
+        const dailyData = await safeCallBackground("getDailyVisitCounts", { days }) || [];
+        if (dailyData.length) {
+          slides.push({
+            id: 'dailyVisitsChart',
+            video: null,
+            prompt: 'Your daily visit counts over time 📅',
+            chart: (
+              <LineContainer width="100%" height={300}>
+                <LineChart data={dailyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="count" stroke="#82ca9d" />
+                </LineChart>
+              </LineContainer>
+            )
+          });
+        }
+      }
+
+      const topSitesRaw = await safeCallBackground("getMostVisitedSites", { days, limit: 3 }) || [];
+      const topDomains = topSitesRaw.map(s => {
+        try { return new URL(s.url).hostname; } catch { return null; }
+      }).filter(Boolean).slice(0, 3);
+
+      if (topDomains.length) {
+        const template = (promptsData.prompts.top3Websites || [{ text: "Your top sites: [TopSites]" }])[0].text;
+        const list = topDomains.join(', ');
         slides.push({
-          id: 'dailyVisitsChart',
-          video: null,
-          prompt: 'Your daily visit counts over time 📅',
-          chart: (
-            <LineContainer width="100%" height={300}>
-              <LineChart data={dailyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#82ca9d" />
-              </LineChart>
-            </LineContainer>
-          ),
+          id: 'topSites',
+          video: videos[3],
+          prompt: template.replace('[TopSites]', list),
           metric: false,
-          metric_type: null
         });
       }
 
-      // TOP 3 SITES 
-      const topSitesRaw = await bg.getMostVisitedSites(days, 3);
-      const topDomains = [...new Set(topSitesRaw.map(s => {
-        try { return new URL(s.url).hostname; } catch { return null; }
-      }).filter(Boolean))].slice(0, 3);
-
-      const formatTopSitesPrompt = (template, topDomains) => {
-        const nonEmpty = topDomains.filter(Boolean);
-      
-        const list = nonEmpty.length === 0
-          ? "no sites"
-          : nonEmpty.length === 1
-          ? nonEmpty[0]
-          : nonEmpty.length === 2
-          ? `${nonEmpty[0]} and ${nonEmpty[1]}`
-          : `${nonEmpty[0]}, ${nonEmpty[1]}, and ${nonEmpty[2]}`;
-      
-        let prompt = template.replace("[TopSites]", list);
-      
-        // 🚀 Fix grammar: was/were
-        if (nonEmpty.length === 1) {
-          prompt = prompt.replace("top sites were", "top site was")
-                         .replace("web hotspots today were", "web hotspot today was")
-                         .replace("tour took you to", "tour took you to") // no grammar issue
-                         .replace("leaderboard today:", "leaderboard today:");
-        }
-      
-        return prompt;
-      };
-      
-      
-      if (topDomains.length >= 1) {
-        const options = promptsData.prompts.top3Websites || [];
-        const template = options.length
-          ? options[Math.floor(Math.random() * options.length)].text
-          : "Your top sites: [Website 1], [Website 2], [Website 3]";
-      
-        slides.push({
-          id: 'topSites',
-          video: shuffledVideos[2],
-          prompt: formatTopSitesPrompt(template, topDomains),
-          metric: false,
-          metric_type: null
-        });
-      }      
-      
-      // const topSitesRaw = await bg.getMostVisitedSites(days, 3);
-      // const topDomains = [...new Set(topSitesRaw.map(s => {
-      //   try { return new URL(s.url).hostname; } catch { return null; }
-      // }).filter(Boolean))].slice(0, 3);
-
-      // if (topDomains.length >= 1) {
-      //   const [w1, w2, w3] = topDomains;
-      //   slides.push({
-      //     id: 'topSites',
-      //     video: shuffledVideos[2],
-      //     prompt: pickPrompt("top3Websites", {
-      //       'Website 1': w1 || '—',
-      //       'Website 2': w2 || '',
-      //       'Website 3': w3 || ''
-      //     }),
-      //     metric: false,
-      //     metric_type: null
-      //   });
-      // }
-
-      // PEAK BROWSING TIME 
-      const visitsPerHour = await bg.getVisitsPerHour(days);
-      const peakHour = visitsPerHour.reduce((a, b) => (a.totalVisits > b.totalVisits ? a : b));
+      const visitsPerHour = await safeCallBackground("getVisitsPerHour", { days }) || [];
+      let peakHour = visitsPerHour.length ? visitsPerHour.reduce((a, b) => a.totalVisits > b.totalVisits ? a : b) : { hour: 0, totalVisits: 0 };
 
       slides.push({
         id: 'visitsPerHour',
-        video: shuffledVideos[4],
+        video: videos[4],
         prompt: pickPrompt("peakBrowsingTime", {
           Start: `${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`,
           End: `${((peakHour.hour + 1) % 12) || 12}${(peakHour.hour + 1) < 12 ? 'am' : 'pm'}`,
           Count: peakHour.totalVisits
         }),
-        metric: false,
-        metric_type: null
       });
 
-      slides.push({
-        id: 'visitsPerHourChart',
-        video: null,
-        prompt: "Your browsing activity by hour ⏰",
-        chart: <TimeOfDayHistogram data={visitsPerHour} />,
-        metric: false,
-        metric_type: null
-      });
-
-      // BUSIEST DAY 
-      const dailyCounts = await bg.getDailyVisitCounts(days);
-      const mostVisitedDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
-      if (mostVisitedDay) {
+      if (visitsPerHour.length) {
         slides.push({
-          id: 'busiestDay',
-          video: shuffledVideos[6],
-          prompt: pickPrompt("busiestDay", {
-            Date: mostVisitedDay.date,
-            Count: mostVisitedDay.count
-          }),
-          metric: false,
-          metric_type: null
+          id: 'visitsPerHourChart',
+          video: null,
+          prompt: 'Your browsing activity by hour ⏰',
+          chart: <TimeOfDayHistogram data={visitsPerHour} />
         });
       }
 
-      // TOP CATEGORY 
-      const labelCounts = await bg.getLabelCounts(days);
-      const topCategory = labelCounts.sort((a, b) => b.count - a.count)[0];
+      const dailyCounts = await safeCallBackground("getDailyVisitCounts", { days }) || [];
+      const busiestDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
+      if (busiestDay) {
+        slides.push({
+          id: 'busiestDay',
+          video: videos[5],
+          prompt: pickPrompt("busiestDay", { Date: busiestDay.date, Count: busiestDay.count })
+        });
+      }
 
-      const categoryChartData = labelCounts.map(item => ({
-        category: item.categories[0],
-        count: item.count
-      }));
-
+      const labelCounts = await safeCallBackground("getLabelCounts", { days }) || [];
+      const topCategory = labelCounts[0];
       if (topCategory) {
         slides.push({
           id: 'topCategory',
-          video: shuffledVideos[5],
-          prompt: pickPrompt("topCategory", {
-            Category: topCategory.categories[0],
-            Count: topCategory.count
-          }),
-          metric: false,
-          metric_type: null
+          video: videos[6],
+          prompt: pickPrompt("topCategory", { Category: topCategory.categories[0], Count: topCategory.count })
         });
-
         slides.push({
           id: 'topCategoryRadar',
-          video: null, // optional background
+          video: null,
           prompt: "Here's how your categories stack up 📊",
-          chart: <RadarCategoryChart data={categoryChartData} />,
-          metric: false,
-          metric_type: null
+          chart: <RadarCategoryChart data={labelCounts.map(c => ({ category: c.categories[0], count: c.count }))} />
         });
       }
 
-
-      // TRENDING CATEGORY ON DATE 
-      const categoryTrends = await bg.getCategoryTrends(days);
-      const topTrend = categoryTrends.sort((a, b) => b.categories[0].count - a.categories[0].count)[0];
-      if (topTrend) {
-        slides.push({
-          id: 'trendingCategory',
-          video: shuffledVideos[7],
-          prompt: pickPrompt("trendingCategory", {
-            Category: topTrend.categories[0].label,
-            Date: topTrend.date
-          }),
-          metric: false,
-          metric_type: null
-        });
-      }
-
-      // //TRENDING CATEGORY OVER TIME 
-      // const fullCategoryTrends = await bg.getCategoryTrends(days);
-
-      // const allLabels = new Set();
-      // fullCategoryTrends.forEach(day => {
-      //   day.categories.forEach(cat => {
-      //     allLabels.add(cat.label);
-      //   });
-      // });
-
-      // const formattedTrendData = fullCategoryTrends.map(day => {
-      //   const row = { date: day.date };
-      //   allLabels.forEach(label => {
-      //     row[label] = 0;
-      //   });
-      //   day.categories.forEach(cat => {
-      //     row[cat.label] = cat.count;
-      //   });
-      //   return row;
-      // });
-
-      // if (timeRange !== 'day' && formattedTrendData.length > 0) {
-      //   slides.push({
-      //     id: 'fullCategoryTrends',
-      //     video: null,
-      //     prompt: 'Category trends over time 📊',
-      //     chart: <CategoryTrendsLineChart data={formattedTrendData} />,
-      //     metric: false,
-      //     metric_type: null
-      //   });
-      // }     
-
-      // MOST COMMON JUMP 
-      const transitionPatterns = await bg.getTransitionPatterns(days);
-      const topTransition = transitionPatterns.summary.topPattern;
-      if (topTransition) {
-        slides.push({
-          id: 'topTransition',
-          video: shuffledVideos[8],
-          prompt: pickPrompt("mostCommonJump", {
-            From: new URL(topTransition.from).hostname,
-            To: new URL(topTransition.to).hostname
-          }),
-          metric: false,
-          metric_type: null
-        });
-      }
-
-      // FINAL SLIDE: OUTRO
       slides.push({
         id: 'recapOutro',
-        video: shuffledVideos[9],
-        prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] }),
-        metric: false,
-        metric_type: null
+        video: videos[7],
+        prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] })
       });
-
-      //Recency & Frequency ---
-      // const recencyData = await bg.getRecencyFrequency(days);
-      // slides.push({
-      //   id: 'recencyFrequency',
-      //   video: null,
-      //   prompt: '(DEV) Your top sites by recency & frequency 📈',
-      //   chart: (
-      //     <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
-      //       {JSON.stringify(recencyData, null, 2)}
-      //     </pre>
-      //   ),
-      //   metric: false,
-      //   metric_type: null
-      // });
-
-      //Category Co‑occurrence Counts ---
-      // const coCounts = await bg.getCOCounts(days);
-      // slides.push({
-      //   id: 'coOccurrence',
-      //   video: null,
-      //   prompt: '(DEV) Category co‑occurrence counts 🤝',
-      //   chart: (
-      //     <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
-      //       {JSON.stringify(coCounts, null, 2)}
-      //     </pre>
-      //   ),
-      //   metric: false,
-      //   metric_type: null
-      // }); 
-
-
-      //Full Category Trends Over Time 
-    //  const fullCategoryTrends = await bg.getCategoryTrends(days);
-    //  slides.push({
-    //    id: 'fullCategoryTrends',
-    //     video: null,
-    //     prompt: '(DEV)Category trends over time 📊',
-    //     chart: (
-    //       <pre style={{ color: '#fff', maxHeight: '60%', overflowY: 'auto' }}>
-    //        {JSON.stringify(fullCategoryTrends, null, 2)}
-    //       </pre>
-    //     ),
-    //     metric: false,
-    //     metric_type: null
-    //   });
 
       setSlides(slides);
       setLoading(false);
@@ -375,113 +185,40 @@ const SlideShow = ({ setView, timeRange }) => {
     loadSlides();
   }, [timeRange]);
 
-
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.load();
-    }
+    if (videoRef.current) videoRef.current.load();
   }, [index]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev));
-    }, 5000);
-  
+    const timer = setTimeout(() => setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev)), 5000);
     return () => clearTimeout(timer);
   }, [index, slides.length]);
 
   if (loading) {
-    return (
-      <div className="spinner-overlay">
-        <div className="spinner" />
-      </div>
-    );
+    return <div className="spinner-overlay"><div className="spinner" /></div>;
   }
 
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-      <video
-        ref={videoRef}
-        autoPlay
-        loop
-        muted
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        onError={(e) => console.error("Error loading video:", e)}
-      >
-        {slides.length > 0 && slides[index].video && (
-          <source src={slides[index].video} type="video/mp4" />
-        )}
+      <video ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
+        {slides[index]?.video && <source src={slides[index].video} type="video/mp4" />}
       </video>
-  
-      <button
-        onClick={() => setView('home')}
-        style={{
-          position: 'absolute',
-          top: "10px",
-          right: '10px',
-          fontSize: '40px',
-          border: 'none',
-          background: 'transparent',
-          color: '#fff',
-          cursor: 'pointer'
-        }}
-      >
-        ×
-      </button>
-  {/* // chart  */}
 
-            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+      <button onClick={() => setView('home')} style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '40px', border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>×</button>
+
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
         {slides[index]?.chart ? (
           <>
-            <h1 style={{ color: '#fff', textAlign: 'center', marginBottom: '1rem' }}>{slides[index]?.prompt}</h1>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100% - 100px)' }}>
-              {slides[index].chart}
-            </div>
+            <h1 style={{ color: '#fff', textAlign: 'center', marginBottom: '1rem' }}>{slides[index].prompt}</h1>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 'calc(100% - 100px)' }}>{slides[index].chart}</div>
           </>
         ) : (
           <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>{slides[index]?.prompt}</h1>
         )}
       </div>
 
-  
-      {/* Navigation Buttons */}
-      <button
-        style={{
-          position: 'absolute',
-          right: '10px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          background: 'transparent',
-          border: 'none',
-          color: 'white',
-          fontSize: '2rem',
-          cursor: 'pointer',
-          zIndex: 10
-        }}
-        onClick={() => setIndex(index + 1)}
-        disabled={index >= slides.length - 1}
-      >
-        <FaArrowRight />
-      </button>
-  
-      <button
-        style={{
-          position: 'absolute',
-          left: '10px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          background: 'transparent',
-          border: 'none',
-          color: 'white',
-          fontSize: '2rem',
-          cursor: 'pointer',
-          zIndex: 10
-        }}
-        onClick={() => setIndex(index - 1)}
-        disabled={index === 0}
-      >
-        <FaArrowLeft />
-      </button>
+      <button onClick={() => setIndex(index + 1)} disabled={index >= slides.length - 1} style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'white', fontSize: '2rem', cursor: 'pointer', zIndex: 10 }}><FaArrowRight /></button>
+      <button onClick={() => setIndex(index - 1)} disabled={index === 0} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', color: 'white', fontSize: '2rem', cursor: 'pointer', zIndex: 10 }}><FaArrowLeft /></button>
     </div>
   );
 };

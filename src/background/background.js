@@ -29,6 +29,72 @@ import handlers       from './handlers/index.js';
   }
 })();
 
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("[Background] Got message:", message.action);
+
+  const { action, days, limit } = message;
+
+  if (action === "fetchAndStoreHistory") {
+    fetchAndStoreHistory(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getMostVisitedSites") {
+    getMostVisitedSites(days, limit).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getVisitsPerHour") {
+    getVisitsPerHour(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getLabelCounts") {
+    getLabelCounts(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getTimeSpentPerSite") {
+    getTimeSpentPerSite(days, limit).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getCategoryTrends") {
+    getCategoryTrends(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getCOCounts") {
+    getCOCounts(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getDailyVisitCounts") {
+    getDailyVisitCounts(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getRecencyFrequency") {
+    getRecencyFrequency(days, limit).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getTransitionPatterns") {
+    getTransitionPatterns(days).then(sendResponse);
+    return true;
+  }
+
+  if (action === "getUniqueWebsites") {
+    getUniqueWebsites(days).then(sendResponse);
+    return true;
+  }
+
+  console.warn("[Background] No handler for action:", action);
+  sendResponse(null);
+  return true;
+});
+
+
 /**
  * Expose background handler functions on the global `window` object.
  *

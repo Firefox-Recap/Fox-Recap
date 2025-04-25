@@ -1,5 +1,20 @@
+/**
+ * @fileoverview
+ * ML service for classifying URLs and page titles.  
+ * Provides caching, similarity checks, and engine initialization.
+ */
+
 import { get as levenshteinDistance } from 'fast-levenshtein';
 import { MLENGINECONFIG, ML_CACHE_SIMILARITY_THRESHOLD } from "../../config";
+
+/**
+ * Polls until the browser.trial.ml API is available or times out.
+ *
+ * @param {number} [timeout=30000] - Max time to wait (ms).
+ * @param {number} [interval=1000] - Polling interval (ms).
+ * @returns {Promise<void>} Resolves when API is ready.
+ * @throws {Error} If the API does not appear within the timeout.
+ */
 async function waitForMlApi(timeout = 30000, interval = 1000) {
   const start = Date.now();
   return new Promise((resolve, reject) => {
@@ -16,6 +31,14 @@ async function waitForMlApi(timeout = 30000, interval = 1000) {
   });
 }
 
+/**
+ * Ensures the ML engine is created and ready.
+ * Requests the `trialML` permission if needed.
+ *
+ * @async
+ * @returns {Promise<boolean>} `true` once the engine is ready.
+ * @throws {Error} On timeout, permission denial, or engine creation failure.
+ */
 export async function ensureEngineIsReady() {
   try {
     await waitForMlApi(30000, 500);
@@ -24,8 +47,7 @@ export async function ensureEngineIsReady() {
   }
   const mlApi = browser.trial.ml;
 
-  // Have we already created the engine this session?
-  const {engineCreated = false} = await browser.storage.session.get({
+  const { engineCreated = false } = await browser.storage.session.get({
     engineCreated: false,
   });
   if (engineCreated) return true;
@@ -42,17 +64,21 @@ export async function ensureEngineIsReady() {
     }
   }
 
-  // Create the engine 
   await mlApi.createEngine(MLENGINECONFIG);
-
-  // Mark as created so we skip this next time
-  await browser.storage.session.set({engineCreated: true});
+  await browser.storage.session.set({ engineCreated: true });
   return true;
 }
 
 /**
- * Classify a URL + page title into one or more labels.
- * Returns the raw array of { label, score } from the ML model if it meets the threshold.
+ * Classifies a URL and title into one or more labels using the ML engine or cache.
+ *
+ * @async
+ * @param {string} url - The URL to classify.
+ * @param {string} title - The page title.
+ * @param {number} threshold - Minimum score to include a label.
+ * @param {boolean} [skipInit=false] - If `true`, skips engine initialization.
+ * @returns {Promise<Array<{label: string, score: number}>>} Classification results.
+ * @throws {Error} If the ML runtime is unavailable.
  */
 export async function classifyURLAndTitle(
   url,
@@ -100,8 +126,13 @@ export async function classifyURLAndTitle(
   return mapped;
 }
 
-// Simple similarity: longest common substring ratio.
-// Feel free to replace with e.g. Levenshtein or Jaro‐Winkler for better accuracy.
+/**
+ * Computes a similarity ratio between two strings using Levenshtein distance.
+ *
+ * @param {string} [a=''] - First string.
+ * @param {string} [b=''] - Second string.
+ * @returns {number} A value between 0 (no match) and 1 (exact match).
+ */
 function stringSimilarity(a = '', b = '') {
   const maxLen = Math.max(a.length, b.length);
   if (maxLen === 0) return 1;
@@ -109,14 +140,23 @@ function stringSimilarity(a = '', b = '') {
   return (maxLen - dist) / maxLen;
 }
 
+/**
+ * Retrieves a cached classification if the URL or title similarity exceeds threshold.
+ *
+ * @async
+ * @param {string} url
+ * @param {string} title
+ * @param {number} [simThreshold=ML_CACHE_SIMILARITY_THRESHOLD]
+ * @returns {Promise<Array<{label: string, score: number}>|null>}
+ */
 async function getCachedClassification(url, title, simThreshold = ML_CACHE_SIMILARITY_THRESHOLD) {
   const { cachedClassifications = [] } = await browser.storage.local.get({
     cachedClassifications: []
   });
 
-  for (let entry of cachedClassifications) {
-    let simUrl = stringSimilarity(url, entry.url);
-    let simTitle = stringSimilarity(title, entry.title);
+  for (const entry of cachedClassifications) {
+    const simUrl = stringSimilarity(url, entry.url);
+    const simTitle = stringSimilarity(title, entry.title);
     if (Math.max(simUrl, simTitle) >= simThreshold) {
       return entry.labels;
     }
@@ -124,6 +164,15 @@ async function getCachedClassification(url, title, simThreshold = ML_CACHE_SIMIL
   return null;
 }
 
+/**
+ * Adds a new classification result to the local storage cache.
+ *
+ * @async
+ * @param {string} url
+ * @param {string} title
+ * @param {Array<{label: string, score: number}>} labels
+ * @returns {Promise<void>}
+ */
 async function addToCache(url, title, labels) {
   const { cachedClassifications = [] } = await browser.storage.local.get({
     cachedClassifications: []

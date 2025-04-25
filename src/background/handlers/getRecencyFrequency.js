@@ -1,6 +1,32 @@
-import { db } from '../initdb.js';
-import { MS_PER_DAY } from '../../config.js'; 
+/**
+ * @fileoverview
+ * Generate recency & frequency statistics for each domain visited
+ * within a specified look‑back window.
+ * @module background/handlers/getRecencyFrequency
+ */
 
+import { db } from '../initdb.js';
+import { MS_PER_DAY } from '../../config.js';
+
+/**
+ * Represents recency & frequency stats for a single domain.
+ * @typedef {Object} RecencyFrequencyEntry
+ * @property {string} domain     The domain name.
+ * @property {number} count      Total number of visits.
+ * @property {number} lastVisit  Timestamp of the most recent visit (ms since epoch).
+ * @property {number} daysSince  Number of days since the last visit.
+ * @property {number} score      Computed recency‑frequency score.
+ */
+
+/**
+ * Compute recency & frequency stats for domains visited in the past `days` days.
+ *
+ * @async
+ * @param {number} days           Look‑back window in days.
+ * @param {number} [limit=5]      Maximum number of domains to return.
+ * @returns {Promise<RecencyFrequencyEntry[]>}
+ *   Resolves with an array of domain stats sorted descending by score.
+ */
 export async function getRecencyFrequency(days, limit = 5) {
   const now = Date.now();
   const cutoff = now - days * MS_PER_DAY;

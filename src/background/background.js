@@ -1,7 +1,25 @@
+/**
+ * @file background.js
+ * @module background/background
+ * @description
+ * Entry point for the background script.  
+ * - Initializes the IndexedDB via {@link module:background/initdb.initDB|initDB()}  
+ * - Exposes all handler functions on the global `window` for easy manual invocation & debugging.
+ */
+
 import { initDB } from './initdb.js';
 import handlers       from './handlers/index.js';
 
-
+/**
+ * Initialize the extension’s database on startup.
+ *
+ * This IIFE calls {@link module:background/initdb.initDB|initDB}
+ * and logs success or failure.
+ *
+ * @async
+ * @function init
+ * @returns {Promise<void>}
+ */
 (async function init() {
   try {
     await initDB();
@@ -9,19 +27,17 @@ import handlers       from './handlers/index.js';
   } catch (err) {
     console.error('Database initialization failed', err);
   }
-})
+})();
 
-
+/**
+ * Expose background handler functions on the global `window` object.
+ *
+ * This allows you to call e.g.
+ * ```
+ * getMostVisitedSites(7).then(console.log)
+ * ```
+ * directly from the console for debugging or ad‐hoc testing.
+ *
+ * @type {Object.<string, Function>}
+ */
 Object.assign(window, handlers);
-
-
-// (async () => {
-//   try {
-//     // this has to be called otherwise we dont have a history database to look at start with 1 day then 7 then 30 this can be managed on frontend i think
-      // moved to popup.jsx
-//     await fetchAndStoreHistory(1);
-//     console.log('fetchAndStoreHistory completed');
-//   } catch (err) {
-//     console.error('fetchAndStoreHistory failed', err);
-//   }
-// })();

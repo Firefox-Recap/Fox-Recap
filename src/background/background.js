@@ -29,6 +29,49 @@ import handlers       from './handlers/index.js';
   }
 })();
 
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const { action, days, limit } = message;
+
+  if (action === "getMostVisitedSites") {
+    return getMostVisitedSites(days, limit).then(sendResponse);
+  }
+
+  if (action === "getVisitsPerHour") {
+    return getVisitsPerHour(days).then(sendResponse);
+  }
+
+  if (action === "getLabelCounts") {
+    return getLabelCounts(days).then(sendResponse);
+  }
+
+  if (action === "getTimeSpentPerSite") {
+    return getTimeSpentPerSite(days, limit).then(sendResponse);
+  }
+
+  if (action === "getCategoryTrends") {
+    return getCategoryTrends(days).then(sendResponse);
+  }
+
+  if (action === "getCOCounts") {
+    return getCOCounts(days).then(sendResponse);
+  }
+
+  if (action === "getDailyVisitCounts") {
+    return getDailyVisitCounts(days).then(sendResponse);
+  }
+
+  if (action === "getRecencyFrequency") {
+    return getRecencyFrequency(days, limit).then(sendResponse);
+  }
+
+  if (action === "getTransitionPatterns") {
+    return getTransitionPatterns(days).then(sendResponse);
+  }
+
+  return false; // let other listeners run
+});
+
+
 /**
  * Expose background handler functions on the global `window` object.
  *

@@ -56,9 +56,11 @@ const SlideShow = ({ setView, timeRange }) => {
   useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
-      await safeCallBackground("fetchAndStoreHistory", { days });
       const daysMap = { day: 1, week: 7, month: 30 };
       const days = daysMap[timeRange] || 1;
+      console.log("[SlideShow] Fetching and storing history...");
+      await safeCallBackground("fetchAndStoreHistory", { days });
+      console.log("[SlideShow] History fetch complete, loading slides...");
       const slides = [];
       const videos = shuffle([...backgroundVideos]);
 

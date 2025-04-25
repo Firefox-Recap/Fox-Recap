@@ -70,29 +70,6 @@ cd Histofy
 # Install dependencies
 npm install
 ```
-
----
-
-### 🔧 Running the Extension Locally  
-To test the extension in **Firefox Developer Mode**, follow these steps:  
-
-1️⃣ Open **Firefox** and navigate to:  
-   ```
-   about:debugging#/runtime/this-firefox
-   ```  
-2️⃣ Click **"Load Temporary Add-on"**  
-3️⃣ Select **`manifest.json`** from the project directory  
-
-Your extension should now be active in Firefox! 🚀  
-
----
-
-### 🏗 Development Mode (Auto Rebuild)  
-For live development with **automatic rebuilding**:  
-
-```sh
-# Start the local development server
-npm run dev
 ```
 This will watch for changes and automatically rebuild the extension.  
 

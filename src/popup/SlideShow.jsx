@@ -52,9 +52,11 @@ const SlideShow = ({ setView, timeRange }) => {
     return array;
   };
 
+
   useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
+      await safeCallBackground("fetchAndStoreHistory", { days });
       const daysMap = { day: 1, week: 7, month: 30 };
       const days = daysMap[timeRange] || 1;
       const slides = [];

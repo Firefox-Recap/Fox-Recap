@@ -6,11 +6,23 @@ const Popup = () => {
   const [view, setView] = useState('home');
   const [timeRange, setTimeRange] = useState('day');
 
+  const onSelectTimeRange = async (range) => {
+    const daysMap = { day: 1, week: 7, month: 30 };
+    const days = daysMap[range] || 1;
+
+    // 🔥 Step 1: Tell background to fetch and store history
+    await browser.runtime.sendMessage({
+      action: "fetchAndStoreHistory",
+      days,
+    });
+
+    // 🔥 Step 2: Open recap tab
+    const url = browser.runtime.getURL(`recap.html?range=${range}`);
+    browser.tabs.create({ url });
+  };
+
   return view === 'home'
-    ? <HomeView onSelectTimeRange={(range) => {
-        const url = browser.runtime.getURL(`recap.html?range=${range}`);
-        browser.tabs.create({ url });
-      }} />
+    ? <HomeView onSelectTimeRange={onSelectTimeRange} />
     : <SlideShow timeRange={timeRange} setView={setView} />;
 };
 

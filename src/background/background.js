@@ -30,45 +30,68 @@ import handlers       from './handlers/index.js';
 })();
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("[Background] Got message:", message.action);
+
   const { action, days, limit } = message;
 
+  if (action === "fetchAndStoreHistory") {
+    fetchAndStoreHistory(days).then(sendResponse);
+    return true;
+  }
+
   if (action === "getMostVisitedSites") {
-    return getMostVisitedSites(days, limit).then(sendResponse);
+    getMostVisitedSites(days, limit).then(sendResponse);
+    return true;
   }
 
   if (action === "getVisitsPerHour") {
-    return getVisitsPerHour(days).then(sendResponse);
+    getVisitsPerHour(days).then(sendResponse);
+    return true;
   }
 
   if (action === "getLabelCounts") {
-    return getLabelCounts(days).then(sendResponse);
+    getLabelCounts(days).then(sendResponse);
+    return true;
   }
 
   if (action === "getTimeSpentPerSite") {
-    return getTimeSpentPerSite(days, limit).then(sendResponse);
+    getTimeSpentPerSite(days, limit).then(sendResponse);
+    return true;
   }
 
   if (action === "getCategoryTrends") {
-    return getCategoryTrends(days).then(sendResponse);
+    getCategoryTrends(days).then(sendResponse);
+    return true;
   }
 
   if (action === "getCOCounts") {
-    return getCOCounts(days).then(sendResponse);
+    getCOCounts(days).then(sendResponse);
+    return true;
   }
 
   if (action === "getDailyVisitCounts") {
-    return getDailyVisitCounts(days).then(sendResponse);
+    getDailyVisitCounts(days).then(sendResponse);
+    return true;
   }
 
   if (action === "getRecencyFrequency") {
-    return getRecencyFrequency(days, limit).then(sendResponse);
+    getRecencyFrequency(days, limit).then(sendResponse);
+    return true;
   }
 
   if (action === "getTransitionPatterns") {
-    return getTransitionPatterns(days).then(sendResponse);
+    getTransitionPatterns(days).then(sendResponse);
+    return true;
   }
 
-  return false; // let other listeners run
+  if (action === "getUniqueWebsites") {
+    getUniqueWebsites(days).then(sendResponse);
+    return true;
+  }
+
+  console.warn("[Background] No handler for action:", action);
+  sendResponse(null);
+  return true;
 });
 
 

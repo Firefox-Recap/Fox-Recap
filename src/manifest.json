@@ -9,7 +9,8 @@
     "tabs",
     "webNavigation",
     "downloads",
-    "https://big.oisd.nl/*"
+    "https://big.oisd.nl/*",
+    "https://nsfw-small.oisd.nl/*"
   ],
   "optional_permissions": [
     "trialML"
@@ -31,5 +32,6 @@
     "48": "assets/icon48.png",
     "128": "assets/icon128.png"
   },
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'; connect-src https://big.oisd.nl blob:;"
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'; connect-src https://big.oisd.nl https://nsfw-small.oisd.nl blob:;"
+
 }

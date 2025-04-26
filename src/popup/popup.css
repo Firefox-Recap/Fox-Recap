@@ -1,1 +1,163 @@
- 
+body {
+    font-family: Arial, sans-serif;
+    width: 850px;
+    height: 750px;
+    overflow: hidden;
+    color: #fff;
+    background-repeat: no-repeat;
+    background-color: black;
+    background-size: cover;
+}
+  
+  .popup-container {
+    padding: 15px;
+  }
+  
+  h2 {
+    font-size: 18px;
+    margin: 0 0 10px;
+    color: #4CAF50;
+  }
+  
+  ul#history-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  ul#history-list li {
+    padding: 5px 0;
+    border-bottom: 1px solid #333;
+  }
+  
+  ul#history-list li a {
+    color: #9CDCFE;
+    text-decoration: none;
+  }
+  
+  ul#history-list li a:hover {
+    text-decoration: underline;
+  }
+  
+  .dwm-nav {
+    display: flex;
+    border: 1px solid black;
+    border-radius: 15px;
+    overflow: hidden;
+    width: fit-content;
+  }
+  
+  .dwm-nav-item {
+    padding: 5px 10px;
+    cursor: pointer;
+    border: none;
+    background: rgb(134, 134, 134);
+    font-size: 12px;
+    font-weight: bold;
+    color: black;
+    transition: background 0.3s, color 0.3s;
+  }
+  
+  .dwm-nav-item:not(:last-child) {
+    border-right: 1px solid black;
+  }
+  
+  .dwm-nav-item.active {
+    background: #005eff;
+    color: rgba(255, 255, 255, 0.95);
+  }
+  
+  /* 💡 New additions */
+  .category-badge {
+    background-color: #444;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 8px;
+    font-size: 0.85em;
+    font-weight: bold;
+    margin-left: 6px;
+  }
+  
+  .source-locked {
+    background-color: #0066cc;
+  }
+  
+  .source-embedding {
+    background-color: #682acb;
+  }
+  
+  .source-rule {
+    background-color: #2b8f2b;
+  }
+  
+  .source-user {
+    background-color: #cc9900;
+  }
+  
+  .source-default {
+    background-color: #888;
+  }
+  
+  .source-label {
+    margin-left: 6px;
+    font-size: 0.8em;
+    opacity: 0.75;
+  }
+
+.container {
+    margin-top: 170px;
+    padding-left: 35px;
+}
+
+.chart-container {
+    width: 100%;       /* Full width of its parent */
+    height: 300px;     /* Increased height */
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.home-btn {
+    padding: 15px;
+    font-size: 30px;
+    background-color: #6F84B3;
+    color: white;
+    border: none;
+    margin-bottom: 15px;
+    border-radius: 15px;
+    font-weight: bold;
+    width: 300px;
+}
+
+.btn-container {
+    display: flex;
+    flex-direction: column;
+    margin-top: 15px;
+    padding: 0;
+}
+
+button:disabled {
+    display: none;
+}
+
+.spinner-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: black;
+  opacity: 20%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; /* ensures it stays on top */
+}
+
+.spinner {
+  border: 6px solid #fff;
+  border-top: 6px solid #444;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }

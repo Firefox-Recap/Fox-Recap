@@ -1,18 +1,15 @@
 // heavily ai generated this file can be optimized a lot
 import { parse } from 'tldts';
-
-// Blocklist URLs
-const OISD_BLOCKLIST_URL = 'https://big.oisd.nl/domainswild';        // General domain blocklist (plain format)
-const OISD_SMALL_NSFW_URL = 'https://nsfw-small.oisd.nl';            // NSFW (small) blocklist, ABP format
+import { OISD_BLOCKLIST_URL } from '../../config';
 
 // Internal state
-let oisdBlocklist = new Set();       // Collected blocked domains (merged from both sources)
-let oisdRegexList = [];              // Optional regex entries (not used by these lists)
-let isBlocklistLoaded = false;       // Flag for one-time load
-let blocklistLoadPromise = null;     // Prevent concurrent reloads
+let oisdBlocklist = new Set();
+let oisdRegexList = [];
+let isBlocklistLoaded = false;
+let blocklistLoadPromise = null;
 
 /**
- * Load the OISD blocklist (domains or regexes) exactly once.
+ * Load the OISD blocklist (domains) exactly once.
  * @returns {Promise<{ domains: Set<string>, regexes: RegExp[] }>}
  */
 export function loadBlocklist() {
@@ -21,51 +18,27 @@ export function loadBlocklist() {
 
   blocklistLoadPromise = (async () => {
     try {
-      // Fetch both lists in parallel
-      const [generalResp, nsfwResp] = await Promise.all([
-        fetch(OISD_BLOCKLIST_URL),
-        fetch(OISD_SMALL_NSFW_URL)
-      ]);
-
-      if (!generalResp.ok || !nsfwResp.ok) {
-        throw new Error(`HTTP Error: ${generalResp.status}, ${nsfwResp.status}`);
+      const response = await fetch(OISD_BLOCKLIST_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP Error: ${response.status}`);
       }
+      const text = await response.text();
+      const lines = text.split('\n').map((l) => l.trim());
 
-      const [generalText, nsfwText] = await Promise.all([
-        generalResp.text(),
-        nsfwResp.text()
-      ]);
-
-      // --- Parse GENERAL blocklist (raw domain list) ---
-      const generalDomains = generalText
-        .split('\n')
-        .map(line => line.trim().toLowerCase().replace(/^[*.]+/, ''))
-        .filter(line =>
-          line &&
-          !/^[#!/\s]/.test(line) &&
-          /^[a-z0-9.-]+$/.test(line) &&
-          !/^\d+\.\d+\.\d+\.\d+$/.test(line) // skip IPs
-        );
-
-      // --- Parse NSFW blocklist (ABP-style e.g. ||example.com^) ---
-      const nsfwDomains = nsfwText
-        .split('\n')
-        .map(line => line.trim())
-        .filter(line => line.startsWith('||'))
-        .map(line => line.slice(2).replace(/\^.*$/, '').toLowerCase())
-        .filter(domain => /^[a-z0-9.-]+$/.test(domain));
-
-      // Merge all domains
-      oisdBlocklist = new Set([...generalDomains, ...nsfwDomains]);
-
-      // Optionally parse regex lines if needed in future (currently unused)
-      // const isRegexFormat = allLines.some((l) => l.startsWith('# Syntax: Regex'));
+      oisdBlocklist = new Set(
+        lines
+          .filter((l) => l && !/^[#!/\s]/.test(l))
+          .map((l) => l.toLowerCase().replace(/^[*.]+/, ''))
+          .filter(
+            (domain) =>
+              /^[a-z0-9.-]+$/.test(domain) && !/^\d+(\.\d+){3}$/.test(domain),
+          ),
+      );
 
       isBlocklistLoaded = true;
       return { domains: oisdBlocklist, regexes: oisdRegexList };
     } catch (err) {
       console.error('[blacklist] load failed', err);
-      // Reset so we can retry later if needed
       isBlocklistLoaded = false;
       oisdBlocklist.clear();
       oisdRegexList = [];
@@ -87,7 +60,6 @@ loadBlocklist();
  * @returns {Promise<boolean>}
  */
 export async function shouldBlockDomain(url) {
-  // Wait for blocklist to load (or retry)
   const { domains, regexes } = await loadBlocklist();
 
   try {
@@ -95,7 +67,7 @@ export async function shouldBlockDomain(url) {
     const host = hostname.toLowerCase();
     const { domain: root } = parse(host);
 
-    // 1) Match against regex rules
+    // 1) Match against regex rules (currently unused)
     for (const rx of regexes) {
       if (rx.test(host)) return true;
     }
@@ -106,7 +78,7 @@ export async function shouldBlockDomain(url) {
     // 3) Root domain match
     if (root && root !== host && domains.has(root)) return true;
 
-    // 4) Match any parent suffix (e.g., sub.domain.example.com → example.com)
+    // 4) Parent domain match
     const parts = host.split('.');
     for (let i = 1; i < parts.length; i++) {
       const parent = parts.slice(i).join('.');

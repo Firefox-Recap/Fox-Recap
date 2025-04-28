@@ -32,7 +32,8 @@
     "128": "assets/icon128.png"
   },
   "web_accessible_resources": [
-    "recap.html"
+    "recap.html",
+    "assets/videos/*.mp4"
   ],
   "browser_specific_settings": {
     "gecko": {

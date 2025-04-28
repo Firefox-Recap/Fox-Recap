@@ -119,7 +119,7 @@ body {
     padding: 15px;
     font-size: 30px;
     background-color: #6F84B3;
-    color: white;
+    color: #fff;
     border: none;
     margin-bottom: 15px;
     border-radius: 15px;
@@ -137,27 +137,62 @@ body {
 button:disabled {
     display: none;
 }
-
-.spinner-overlay {
-  position: fixed;
+/* Container that covers the entire viewport */
+.loading-screen {
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: black;
-  opacity: 20%;
+  width: 100%;
+  height: 100%;
+  background-color: black; /* Optional: set background color */
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 9999; /* ensures it stays on top */
+  align-items: center;
 }
 
-.spinner {
-  border: 6px solid #fff;
-  border-top: 6px solid #444;
-  border-radius: 50%;
-  width: 60px;
-  height: 60px;
-  animation: spin 1s linear infinite;
+/* Container that centers its content vertically */
+.center-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Wavy text styling */
+.wavy-text {
+  display: inline-block;
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  margin-bottom: 20px; /* Space between text and progress bar */
+}
+
+.wavy-char {
+  display: inline-block;
+  animation: wave 1.5s infinite;
+  animation-delay: calc(0.1s * var(--i));
+}
+
+@keyframes wave {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Progress bar styling */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #555;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #00C853;
+  transition: width 0.5s ease-in-out;
+}

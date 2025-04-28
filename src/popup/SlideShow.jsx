@@ -4,6 +4,7 @@ import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
 import TimeOfDayHistogram from './TimeOfDayHistogram';
+import WavyText from './WavyText';
 import CategoryTrendsLineChart from './CategoryTrendsLineChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
@@ -17,11 +18,13 @@ const safeCallBackground = async (action, payload = {}) => {
   }
 };
 
+
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [notEnoughData, setNotEnoughData] = useState(false);
   const videoRef = useRef(null);
 
   const backgroundVideos = [
@@ -53,7 +56,7 @@ const SlideShow = ({ setView, timeRange }) => {
     return array;
   };
 
-  useEffect(() => {
+  useEffect(() => { 
     const loadSlides = async () => {
       setLoading(true);
       const daysMap = { day: 1, week: 7, month: 30 };
@@ -81,6 +84,16 @@ const SlideShow = ({ setView, timeRange }) => {
       });
 
       const totalUnique = await safeCallBackground("getUniqueWebsites", { days });
+
+      // see if theres any data, if not skip slides
+      if (!totalUnique || totalUnique === 0) {
+        console.log("[SlideShow] Not enough data (totalUnique=0).");
+        setNotEnoughData(true);
+        setLoading(false);
+        setProgress(100);
+        return;
+      }
+      
       slides.push({
         id: 'totalWebsites',
         video: videos[2],
@@ -179,12 +192,12 @@ const SlideShow = ({ setView, timeRange }) => {
         video: videos[7],
         prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] })
       });
-
       setSlides(slides);
+      setNotEnoughData(false);
       setLoading(false);
       setProgress(100);
     };
-
+  
     loadSlides();
   }, [timeRange]);
 
@@ -207,42 +220,37 @@ const SlideShow = ({ setView, timeRange }) => {
   }, [index]);
 
   useEffect(() => {
+    if (loading || notEnoughData) return;
+  
     const timer = setTimeout(() => {
       setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev));
     }, 5000);
+  
     return () => clearTimeout(timer);
-  }, [index, slides.length]);
+  }, [index, slides.length, loading, notEnoughData]);
 
-  // 🚀 LOADING SCREEN while slides are being fetched
+  //  LOADING SCREEN
   if (loading || progress < 100) {
     return (
-      <div style={{
-        height: '100vh',
-        background: 'black',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        color: 'white'
-      }}>
-        <h1 style={{ marginBottom: '20px' }}>Preparing your recap...</h1>
-        <div style={{
-          width: '80%',
-          height: '8px',
-          backgroundColor: '#555',
-          borderRadius: '5px',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            width: `${progress}%`,
-            height: '100%',
-            backgroundColor: '#00C853',
-            transition: 'width 0.5s ease-in-out'
-          }}></div>
+      <div className="loading-screen">
+        <div className="center-container">
+          <WavyText text="Preparing your recap..." />
+          <div className="progress-bar">
+            <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+          </div>
         </div>
       </div>
     );
   }
+  
+  if (notEnoughData) {
+    return (
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+        <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>Not enough browsing history yet. Your recap will be ready once you’ve explored a bit more!</h1>
+    </div>
+    );
+  }
+  
 
   // 🚀 SLIDESHOW UI after loading
   return (
@@ -250,8 +258,6 @@ const SlideShow = ({ setView, timeRange }) => {
       <video ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
         {slides[index]?.video && <source src={slides[index].video} type="video/mp4" />}
       </video>
-
-      <button onClick={() => setView('home')} style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '40px', border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>×</button>
 
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
         {slides[index]?.chart ? (

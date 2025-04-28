@@ -705,3 +705,4 @@ fabric.properties
 # Exclude web-ext build artifacts
 /web-ext-artifacts/
 /*.zip
+.DS_Store

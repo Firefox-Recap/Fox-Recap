@@ -55,7 +55,7 @@ const SlideShow = ({ setView, timeRange }) => {
     return array;
   };
 
-  useEffect(() => {
+  useEffect(() => { 
     const loadSlides = async () => {
       setLoading(true);
       const daysMap = { day: 1, week: 7, month: 30 };

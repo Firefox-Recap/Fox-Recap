@@ -141,9 +141,10 @@ export async function shouldBlockDomain(url) {
     const { domain: root } = parse(host);
 
     // 1) Match against regex rules (currently unused)
-    for (const rx of regexes) {
-      if (rx.test(host)) return true;
-    }
+    // Commenting out as 'regexes' is not defined
+    // for (const rx of regexes) {
+    //   if (rx.test(host)) return true;
+    // }
 
     // 2) Exact hostname match
     if (domains.has(host)) return true;

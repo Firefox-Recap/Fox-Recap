@@ -8,7 +8,21 @@
  */
 
 import { initDB } from './initdb.js';
-import handlers       from './handlers/index.js';
+// Use named imports for handlers
+import {
+  fetchAndStoreHistory,
+  getMostVisitedSites,
+  getLabelCounts,
+  getCOCounts,
+  getVisitsPerHour,
+  getDailyVisitCounts,
+  getCategoryTrends,
+  getTransitionPatterns,
+  getRecencyFrequency,
+  getUniqueWebsites
+  // Note: getTimeSpentPerSite is not exported from handlers/index.js, remove if not needed or add it there.
+} from './handlers/index.js';
+import handlers from './handlers/index.js'; // Keep default import for window assignment if needed
 
 /**
  * Initialize the extension’s database on startup.
@@ -54,10 +68,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (action === "getTimeSpentPerSite") {
-    getTimeSpentPerSite(days, limit).then(sendResponse);
-    return true;
-  }
+  // Note: getTimeSpentPerSite is not defined/imported. Commenting out or implement handler.
+  // if (action === "getTimeSpentPerSite") {
+  //   getTimeSpentPerSite(days, limit).then(sendResponse);
+  //   return true;
+  // }
 
   if (action === "getCategoryTrends") {
     getCategoryTrends(days).then(sendResponse);

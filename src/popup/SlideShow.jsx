@@ -231,22 +231,15 @@ const SlideShow = ({ setView, timeRange }) => {
   // 🚀 LOADING SCREEN while slides are being fetched
   if (loading || progress < 100) {
     return (
-      <div style={{
-        height: '100vh',
-        background: 'black',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        color: 'white'
-      }}>
-        <h1 style={{ marginBottom: '20px' }}>Preparing your recap...</h1>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+        <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>Preparing your recap...</h1>
         <div style={{
-          width: '80%',
+          width: '75%',
           height: '8px',
           backgroundColor: '#555',
           borderRadius: '5px',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          margin: '0 auto'
         }}>
           <div style={{
             width: `${progress}%`,
@@ -274,8 +267,6 @@ const SlideShow = ({ setView, timeRange }) => {
       <video ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
         {slides[index]?.video && <source src={slides[index].video} type="video/mp4" />}
       </video>
-
-      <button onClick={() => setView('home')} style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '40px', border: 'none', background: 'transparent', color: '#fff', cursor: 'pointer' }}>×</button>
 
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
         {slides[index]?.chart ? (

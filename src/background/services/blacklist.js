@@ -111,6 +111,7 @@ export function loadBlocklist() {
       blocklistLoadPromise = null; // Allow retry on next call
       // Return empty set on major failure, but ensure promise resolves
       return { domains: new Set() };
+
     }
   })();
 
@@ -136,48 +137,31 @@ export async function shouldBlockDomain(url) {
   try {
     const { hostname } = new URL(url);
     const host = hostname.toLowerCase();
-    // Use tldts to reliably get the registrable domain (root)
+
     const { domain: root } = parse(host);
 
-    let isBlocked = false;
-    let matchedDomain = null;
-
-    // 1) Exact hostname match
-    if (domains.has(host)) {
-      isBlocked = true;
-      matchedDomain = host;
-    }
-    // 2) Root domain match (if different from host and valid)
-    else if (root && root !== host && domains.has(root)) {
-      isBlocked = true;
-      matchedDomain = root;
-    }
-    // 3) Parent domain match (check subdomains against list)
-    else {
-      const parts = host.split('.');
-      // Iterate from the potential parent domain upwards
-      // e.g., for sub.sub.example.com, check sub.example.com, then example.com
-      for (let i = 1; i < parts.length - 1; i++) { // Stop before checking only TLD
-        const parent = parts.slice(i).join('.');
-        // Stop if we reach the root domain (already checked) or a TLD-like structure
-        if (parent === root || !parent.includes('.')) break;
-        if (domains.has(parent)) {
-          isBlocked = true;
-          matchedDomain = parent;
-          break; // Found a match, no need to check further parents
-        }
-      }
+    // 1) Match against regex rules (currently unused)
+    for (const rx of regexes) {
+      if (rx.test(host)) return true;
     }
 
-    if (isBlocked) {
-      console.log(`[blacklist] Blocking URL: ${url} (matched domain: ${matchedDomain})`);
-      return true;
+    // 2) Exact hostname match
+    if (domains.has(host)) return true;
+
+    // 3) Root domain match
+    if (root && root !== host && domains.has(root)) return true;
+
+    // 4) Parent domain match
+    const parts = host.split('.');
+    for (let i = 1; i < parts.length; i++) {
+      const parent = parts.slice(i).join('.');
+      if (parent === root || !parent.includes('.')) break;
+      if (domains.has(parent)) return true;
     }
 
-    return false; // Not found in any check
+    return false;
   } catch (err) {
-    // This error is likely due to new URL(url) failing for malformed URLs
-    console.warn('[blacklist] URL parse error; blocking by default for safety', url, err);
-    return true; // Block if URL is malformed
+    console.warn('[blacklist] URL parse error; blocking by default', err);
+    return true;
   }
 }

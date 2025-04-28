@@ -23,10 +23,16 @@ export const DAYS_MAP = {
 };
 
 /**
- * URL of the OISD blocklist (domains or regex patterns).
+ * URL of the OISD blocklist wildcard domains list.
  * @constant {string}
  */
 export const OISD_BLOCKLIST_URL = 'https://big.oisd.nl/domainswild';
+
+/**
+ * URL of the NSFW OISD blocklist wildcard domains list.
+ * @constant {string}
+ */
+export const NSFW_OISD_BLOCKLIST_URL = 'https://nsfw.oisd.nl/domainswild';
 
 /**
  * List of category labels used by the ML classifier and reporting.
@@ -63,6 +69,18 @@ export const ML_CACHE_SIMILARITY_THRESHOLD = 0.75;
  * @constant {boolean}
  */
 export const CONCURRENCY_ENABLED = true;
+
+/**
+ * Enable the main OISD blocklist.
+ * @constant {boolean}
+ */
+export const BLOCKLIST_ENABLED = true;
+
+/**
+ * Enable the NSFW OISD blocklist.
+ * @constant {boolean}
+ */
+export const NSFW_BLOCKLIST_ENABLED = false; // Set to true to enable
 
 /**
  * Configuration object passed to the ML engine at initialization. look at this link for more information: https://huggingface.co/firefoxrecap/URL-TITLE-classifier

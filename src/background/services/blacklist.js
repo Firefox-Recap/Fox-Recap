@@ -1,94 +1,183 @@
-// heavily ai generated this file can be optimized a lot
+/**
+ * @fileoverview Manages fetching, processing, and checking against domain blocklists.
+ * Supports multiple blocklist sources (e.g., OISD full, OISD NSFW) and combines them.
+ * Provides functionality to check if a given URL's domain should be blocked based on the loaded lists.
+ */
+
 import { parse } from 'tldts';
-import { OISD_BLOCKLIST_URL } from '../../config';
+import {
+  OISD_BLOCKLIST_URL,
+  NSFW_OISD_BLOCKLIST_URL,
+  BLOCKLIST_ENABLED,
+  NSFW_BLOCKLIST_ENABLED
+} from '../../config';
 
 // Internal state
-let oisdBlocklist = new Set();
-let oisdRegexList = [];
+/**
+ * Combined set of all domains from enabled blocklists.
+ * @type {Set<string>}
+ */
+let combinedBlocklist = new Set();
+/**
+ * Flag indicating whether the blocklist(s) have been successfully loaded.
+ * @type {boolean}
+ */
 let isBlocklistLoaded = false;
+/**
+ * Promise that resolves when the blocklist loading process is complete.
+ * Used to prevent multiple concurrent load attempts.
+ * @type {Promise<{ domains: Set<string> }> | null}
+ */
 let blocklistLoadPromise = null;
 
 /**
- * Load the OISD blocklist (domains) exactly once.
- * @returns {Promise<{ domains: Set<string>, regexes: RegExp[] }>}
+ * Fetches and processes a single blocklist URL.
+ * Downloads the list, parses it, filters comments/invalid lines,
+ * normalizes domains, and returns a Set of valid domains.
+ * @param {string} url The URL to fetch the blocklist from.
+ * @returns {Promise<Set<string>>} A promise resolving to a Set of domains from the list.
+ *                                  Returns an empty Set if fetching or processing fails.
+ */
+async function fetchAndProcessList(url) {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status} for ${url}`);
+    }
+    const text = await response.text();
+    const lines = text.split('\n').map((l) => l.trim());
+
+    return new Set(
+      lines
+        // Filter out comments, empty lines, etc.
+        .filter((l) => l && !/^[#!/\s]/.test(l))
+        // Normalize: lowercase, remove leading wildcards/dots
+        .map((l) => l.toLowerCase().replace(/^[*.]+/, ''))
+        // Filter for valid domain-like strings, excluding IPs
+        .filter(
+          (domain) =>
+            /^[a-z0-9.-]+$/.test(domain) && !/^\d+(\.\d+){3}$/.test(domain),
+        ),
+    );
+  } catch (err) {
+    console.error(`[blacklist] Failed to load list from ${url}:`, err);
+    return new Set(); // Return empty set on error for this list
+  }
+}
+
+
+/**
+ * Loads the configured blocklist(s) based on environment variables.
+ * Ensures lists are fetched and processed only once.
+ * Merges domains from multiple enabled lists into `combinedBlocklist`.
+ * @returns {Promise<{ domains: Set<string> }>} A promise that resolves with an object containing the combined set of blocked domains.
+ *                                              The promise ensures that the loading process completes before resolving.
  */
 export function loadBlocklist() {
   if (blocklistLoadPromise) return blocklistLoadPromise;
-  if (isBlocklistLoaded) return Promise.resolve({ domains: oisdBlocklist, regexes: oisdRegexList });
+  if (isBlocklistLoaded) return Promise.resolve({ domains: combinedBlocklist });
 
   blocklistLoadPromise = (async () => {
-    try {
-      const response = await fetch(OISD_BLOCKLIST_URL);
-      if (!response.ok) {
-        throw new Error(`HTTP Error: ${response.status}`);
-      }
-      const text = await response.text();
-      const lines = text.split('\n').map((l) => l.trim());
+    const listsToFetch = [];
+    if (BLOCKLIST_ENABLED) {
+      listsToFetch.push(fetchAndProcessList(OISD_BLOCKLIST_URL));
+    }
+    if (NSFW_BLOCKLIST_ENABLED) {
+      listsToFetch.push(fetchAndProcessList(NSFW_OISD_BLOCKLIST_URL));
+    }
 
-      oisdBlocklist = new Set(
-        lines
-          .filter((l) => l && !/^[#!/\s]/.test(l))
-          .map((l) => l.toLowerCase().replace(/^[*.]+/, ''))
-          .filter(
-            (domain) =>
-              /^[a-z0-9.-]+$/.test(domain) && !/^\d+(\.\d+){3}$/.test(domain),
-          ),
-      );
-
+    // If no lists are enabled, resolve immediately with empty set
+    if (listsToFetch.length === 0) {
+      console.warn('[blacklist] No blocklists enabled.');
       isBlocklistLoaded = true;
-      return { domains: oisdBlocklist, regexes: oisdRegexList };
+      combinedBlocklist = new Set();
+      return { domains: combinedBlocklist };
+    }
+
+    try {
+      const results = await Promise.all(listsToFetch);
+      // Combine all fetched sets into one
+      combinedBlocklist = new Set(results.flatMap(domainSet => [...domainSet]));
+
+      console.log(`[blacklist] Loaded ${combinedBlocklist.size} domains.`);
+      isBlocklistLoaded = true;
+      return { domains: combinedBlocklist };
     } catch (err) {
-      console.error('[blacklist] load failed', err);
-      isBlocklistLoaded = false;
-      oisdBlocklist.clear();
-      oisdRegexList = [];
-      blocklistLoadPromise = null;
-      return { domains: oisdBlocklist, regexes: oisdRegexList };
+      // This catch might be redundant if fetchAndProcessList handles errors,
+      // but kept for safety during Promise.all failure.
+      console.error('[blacklist] load failed during Promise.all:', err);
+      isBlocklistLoaded = false; // Reset state on major failure
+      combinedBlocklist.clear();
+      blocklistLoadPromise = null; // Allow retry on next call
+      // Return empty set on major failure, but ensure promise resolves
+      return { domains: new Set() };
     }
   })();
 
   return blocklistLoadPromise;
 }
 
-// Kick off initial load in the background
-loadBlocklist();
-
 /**
- * Return true if the given URL’s hostname is on the blocklist.
- * Waits until the list is loaded before checking.
- * @param {string} url
- * @returns {Promise<boolean>}
+ * Checks if the domain (or its parent domains) of a given URL is present in the loaded blocklist.
+ * It ensures the blocklist is loaded before performing the check.
+ * Checks exact hostname, root domain, and parent domains.
+ * Logs blocked domains and the matched rule.
+ * @param {string} url The URL string to check.
+ * @returns {Promise<boolean>} A promise resolving to `true` if the URL's domain should be blocked, `false` otherwise.
+ *                             Returns `true` if the URL is malformed and cannot be parsed.
  */
 export async function shouldBlockDomain(url) {
-  const { domains, regexes } = await loadBlocklist();
+  // Ensure the list is loaded (or load attempt finished)
+  const { domains } = await loadBlocklist();
+
+  // If loading failed or no lists enabled, domains set might be empty.
+  // An empty set means nothing will be blocked.
 
   try {
     const { hostname } = new URL(url);
     const host = hostname.toLowerCase();
+    // Use tldts to reliably get the registrable domain (root)
     const { domain: root } = parse(host);
 
-    // 1) Match against regex rules (currently unused)
-    for (const rx of regexes) {
-      if (rx.test(host)) return true;
+    let isBlocked = false;
+    let matchedDomain = null;
+
+    // 1) Exact hostname match
+    if (domains.has(host)) {
+      isBlocked = true;
+      matchedDomain = host;
+    }
+    // 2) Root domain match (if different from host and valid)
+    else if (root && root !== host && domains.has(root)) {
+      isBlocked = true;
+      matchedDomain = root;
+    }
+    // 3) Parent domain match (check subdomains against list)
+    else {
+      const parts = host.split('.');
+      // Iterate from the potential parent domain upwards
+      // e.g., for sub.sub.example.com, check sub.example.com, then example.com
+      for (let i = 1; i < parts.length - 1; i++) { // Stop before checking only TLD
+        const parent = parts.slice(i).join('.');
+        // Stop if we reach the root domain (already checked) or a TLD-like structure
+        if (parent === root || !parent.includes('.')) break;
+        if (domains.has(parent)) {
+          isBlocked = true;
+          matchedDomain = parent;
+          break; // Found a match, no need to check further parents
+        }
+      }
     }
 
-    // 2) Exact hostname match
-    if (domains.has(host)) return true;
-
-    // 3) Root domain match
-    if (root && root !== host && domains.has(root)) return true;
-
-    // 4) Parent domain match
-    const parts = host.split('.');
-    for (let i = 1; i < parts.length; i++) {
-      const parent = parts.slice(i).join('.');
-      if (parent === root || !parent.includes('.')) break;
-      if (domains.has(parent)) return true;
+    if (isBlocked) {
+      console.log(`[blacklist] Blocking URL: ${url} (matched domain: ${matchedDomain})`);
+      return true;
     }
 
-    return false;
+    return false; // Not found in any check
   } catch (err) {
-    console.warn('[blacklist] URL parse error; blocking by default', err);
-    return true;
+    // This error is likely due to new URL(url) failing for malformed URLs
+    console.warn('[blacklist] URL parse error; blocking by default for safety', url, err);
+    return true; // Block if URL is malformed
   }
 }

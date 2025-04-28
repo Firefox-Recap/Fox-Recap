@@ -27,24 +27,3 @@ jobs:
 
       - name: Lint (ESLint)
         run: npm run lint
-
-      #  We dont have any test yet
-      # - name: Run tests (Jest) 
-      #   run: npm test
-
-      - name: Build (Webpack)
-        run: npm run build
-
-      # This doesnt really work yet we need to figure this out
-      # - name: Package Firefox Extension
-      #   run: npm run build:ext
-
-      - name: Generate docs (JSDoc)
-        run: npm run docs
-
-      # This doesnt work yet need to figure this out
-      # - name: Upload extension artifact
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: firefox-recap-extension
-      #     path: web-ext-artifacts/*.zip

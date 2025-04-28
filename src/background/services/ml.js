@@ -110,7 +110,7 @@ export async function classifyURLAndTitle(
   console.log('ML classify:', textToClassify);
   const result = await mlApi.runEngine({
     args: [textToClassify],
-    options: { top_k: null },
+    options: { top_k: null }, // mutli-label classification we apply threshold later this might be better at 2
   });
 
   const mapped = result

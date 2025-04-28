@@ -17,11 +17,13 @@ const safeCallBackground = async (action, payload = {}) => {
   }
 };
 
+
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
+  const [notEnoughData, setNotEnoughData] = useState(false);
   const videoRef = useRef(null);
 
   const backgroundVideos = [
@@ -81,6 +83,16 @@ const SlideShow = ({ setView, timeRange }) => {
       });
 
       const totalUnique = await safeCallBackground("getUniqueWebsites", { days });
+
+      // see if theres any data, if not skip slides
+      if (!totalUnique || totalUnique === 0) {
+        console.log("[SlideShow] Not enough data (totalUnique=0).");
+        setNotEnoughData(true);
+        setLoading(false);
+        setProgress(100);
+        return;
+      }
+      
       slides.push({
         id: 'totalWebsites',
         video: videos[2],
@@ -179,12 +191,12 @@ const SlideShow = ({ setView, timeRange }) => {
         video: videos[7],
         prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] })
       });
-
       setSlides(slides);
+      setNotEnoughData(false);
       setLoading(false);
       setProgress(100);
     };
-
+  
     loadSlides();
   }, [timeRange]);
 
@@ -207,11 +219,14 @@ const SlideShow = ({ setView, timeRange }) => {
   }, [index]);
 
   useEffect(() => {
+    if (loading || notEnoughData) return;
+  
     const timer = setTimeout(() => {
       setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev));
     }, 5000);
+  
     return () => clearTimeout(timer);
-  }, [index, slides.length]);
+  }, [index, slides.length, loading, notEnoughData]);
 
   // 🚀 LOADING SCREEN while slides are being fetched
   if (loading || progress < 100) {
@@ -243,6 +258,15 @@ const SlideShow = ({ setView, timeRange }) => {
       </div>
     );
   }
+
+  if (notEnoughData) {
+    return (
+      <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
+        <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>Not enough browsing history yet. Your recap will be ready once you’ve explored a bit more!</h1>
+    </div>
+    );
+  }
+  
 
   // 🚀 SLIDESHOW UI after loading
   return (

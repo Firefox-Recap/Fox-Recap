@@ -4,6 +4,7 @@ import { FaArrowRight, FaArrowLeft } from 'react-icons/fa';
 import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
 import TimeOfDayHistogram from './TimeOfDayHistogram';
+import WavyText from './WavyText';
 import CategoryTrendsLineChart from './CategoryTrendsLineChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
@@ -232,15 +233,16 @@ const SlideShow = ({ setView, timeRange }) => {
   if (loading || progress < 100) {
     return (
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
-        <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>Preparing your recap...</h1>
-        <div style={{
+        <div className="center-container">
+          <WavyText text="Preparing your recap..." />
+        </div>        <div style={{
           width: '75%',
           height: '8px',
           backgroundColor: '#555',
           borderRadius: '5px',
           overflow: 'hidden',
           margin: '0 auto'
-        }}>
+          }}>
           <div style={{
             width: `${progress}%`,
             height: '100%',

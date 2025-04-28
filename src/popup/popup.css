@@ -137,14 +137,34 @@ body {
 button:disabled {
     display: none;
 }
+/* Container that covers the entire viewport */
+.loading-screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black; /* Optional: set background color */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
+/* Container that centers its content vertically */
+.center-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Wavy text styling */
 .wavy-text {
   display: inline-block;
   font-size: 2rem;
   font-weight: bold;
   color: white;
   text-align: center;
-  border: 2px solid white;
+  margin-bottom: 20px; /* Space between text and progress bar */
 }
 
 .wavy-char {
@@ -162,11 +182,17 @@ button:disabled {
   }
 }
 
-.center-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh; /* Full viewport height */
-  width: 100vw;  /* Full viewport width */
-  background-color: black; /* Optional: set background color */
+/* Progress bar styling */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #555;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background-color: #00C853;
+  transition: width 0.5s ease-in-out;
 }

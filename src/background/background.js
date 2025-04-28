@@ -8,7 +8,23 @@
  */
 
 import { initDB } from './initdb.js';
-import handlers       from './handlers/index.js';
+import handlers from './handlers/index.js'; // Keep the default import for window assignment
+
+// Destructure the specific handlers needed for the message listener
+const {
+  fetchAndStoreHistory,
+  getMostVisitedSites,
+  getVisitsPerHour,
+  getLabelCounts,
+  //getTimeSpentPerSite, 
+  getCategoryTrends,
+  getCOCounts,
+  getDailyVisitCounts,
+  getRecencyFrequency,
+  getTransitionPatterns,
+  getUniqueWebsites
+} = handlers;
+
 
 /**
  * Initialize the extension’s database on startup.
@@ -54,10 +70,11 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
-  if (action === "getTimeSpentPerSite") {
-    getTimeSpentPerSite(days, limit).then(sendResponse);
-    return true;
-  }
+  // Note: 'getTimeSpentPerSite' is not defined in handlers/index.js
+  // if (action === "getTimeSpentPerSite") {
+  //   getTimeSpentPerSite(days, limit).then(sendResponse);
+  //   return true;
+  // }
 
   if (action === "getCategoryTrends") {
     getCategoryTrends(days).then(sendResponse);
@@ -91,19 +108,5 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   console.warn("[Background] No handler for action:", action);
   sendResponse(null);
-  return true;
+  return true; // Keep true here for async sendResponse
 });
-
-
-/**
- * Expose background handler functions on the global `window` object.
- *
- * This allows you to call e.g.
- * ```
- * getMostVisitedSites(7).then(console.log)
- * ```
- * directly from the console for debugging or ad‐hoc testing.
- *
- * @type {Object.<string, Function>}
- */
-Object.assign(window, handlers);

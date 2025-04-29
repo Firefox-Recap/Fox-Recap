@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './settings.css';
 
 const Settings = () => {
   const [hasPermission, setHasPermission] = useState(null);
@@ -35,25 +36,34 @@ const Settings = () => {
   };
 
   return (
-    <div style={{ padding: 20, fontFamily: 'Arial, sans-serif', color: '#333' }}>
-      <h1>Settings</h1>
-      <h2>ML Engine Permission</h2>
-      {hasPermission === null && <p>Checking permission status...</p>}
-      {hasPermission && <p style={{ color: 'green' }}>✅ trialML permission granted.</p>}
-      {hasPermission === false && (
-        <div>
-          <p style={{ color: 'red' }}>❌ trialML permission is required for ML features.</p>
-          <button onClick={handleRequestPermission} disabled={requesting}>
-            {requesting ? 'Requesting...' : 'Grant Permission'}
-          </button>
-          {error && <p style={{ color: 'red', marginTop: 10 }}>{error}</p>}
-        </div>
-      )}
-      <p style={{ marginTop: 20, fontSize: '0.9em', color: '#666' }}>
-        Note: You might need to enable <code>browser.ml.enable</code> and <code>extensions.ml.enabled</code> in <code>about:config</code> in Firefox Nightly.
-      </p>
+    <div className="settings-page">
+      <div className="settings-container">
+        <h1>Settings</h1>
+        <h2>ML Engine Permission</h2>
+        {hasPermission === null && <p>Checking permission status...</p>}
+        {hasPermission && <p className="success">✅ trialML permission granted.</p>}
+        {hasPermission === false && (
+          <div>
+            <p className="error">❌ trialML permission is required for ML features.</p>
+            <button onClick={handleRequestPermission} disabled={requesting}>
+              {requesting ? 'Requesting...' : 'Grant Permission'}
+            </button>
+            {error && <p className="error" style={{ marginTop: 10 }}>{error}</p>}
+          </div>
+        )}
+        <p className="note">
+          <strong>Note:</strong><br />
+          If ML features aren’t showing up, follow these steps:
+          <ol style={{ textAlign: 'left', marginTop: '10px', marginLeft: '20px' }}>
+            <li>Open <code>about:config</code> in Firefox Nightly.</li>
+            <li>Search for <code>browser.ml.enable</code> and set it to <code>true</code>.</li>
+            <li>Search for <code>extensions.ml.enabled</code> and set it to <code>true</code>.</li>
+          </ol>
+        </p>
+      </div>
     </div>
   );
+  
 };
 
 export default Settings;

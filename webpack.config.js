@@ -5,7 +5,8 @@ module.exports = {
   entry: {
     popup: './src/popup/index.jsx',
     recap: './src/popup/recap.jsx',
-    background: './src/background/background.js'
+    background: './src/background/background.js',
+    settings: './src/settings/index.jsx'
   },
   output: {
     filename: '[name].js',
@@ -33,6 +34,7 @@ module.exports = {
         { from: 'src/manifest.json', to: 'manifest.json' },
         { from: 'src/popup/popup.html', to: 'popup.html' },
         { from: 'src/popup/recap.html', to: 'recap.html' },
+        { from: 'src/settings/settings.html', to: 'settings.html' },
         { from: 'src/assets', to: 'assets' } 
       ]
     })

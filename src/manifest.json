@@ -31,6 +31,10 @@
     "48": "assets/icon48.png",
     "128": "assets/icon128.png"
   },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
   "web_accessible_resources": [
     "recap.html",
     "assets/videos/*.mp4"

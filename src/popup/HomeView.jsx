@@ -61,7 +61,7 @@ const HomeView = ({ onSelectTimeRange, loading, onOpenSettings}) => (
 HomeView.propTypes = {
   onSelectTimeRange: PropTypes.func.isRequired,
   loading: PropTypes.bool,
-  onOpenSettings: PropTypes.func // optional for now
+  onOpenSettings: PropTypes.func.isRequired
 };
 
 export default HomeView;

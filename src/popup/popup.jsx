@@ -11,8 +11,12 @@ const Popup = () => {
     browser.tabs.create({ url });
   };
 
+  const handleOpenSettings = () => {
+    browser.runtime.openOptionsPage();
+  };
+
   return view === 'home'
-    ? <HomeView onSelectTimeRange={onSelectTimeRange} />
+    ? <HomeView onSelectTimeRange={onSelectTimeRange} onOpenSettings={handleOpenSettings} />
     : <SlideShow timeRange={timeRange} setView={setView} />;
 };
 

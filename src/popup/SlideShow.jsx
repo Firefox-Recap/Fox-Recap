@@ -5,9 +5,9 @@ import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
 import TimeOfDayHistogram from './TimeOfDayHistogram';
 import WavyText from './WavyText';
-import CategoryTrendsLineChart from './CategoryTrendsLineChart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
+// Utility function for making safe background calls
 const safeCallBackground = async (action, payload = {}) => {
   try {
     const response = await browser.runtime.sendMessage({ action, ...payload });
@@ -18,6 +18,30 @@ const safeCallBackground = async (action, payload = {}) => {
   }
 };
 
+// Constants for time ranges
+const timeRangeMap = { day: "today", week: "this week", month: "this month" };
+
+// Helper function to pick a random prompt from the promptsData
+const pickPrompt = (section, replacements = {}) => {
+  const options = promptsData.prompts[section] || [];
+  if (!options.length) return '';
+  const template = options[Math.floor(Math.random() * options.length)].text;
+  return Object.entries(replacements).reduce(
+    (result, [key, val]) => result.replaceAll(`[${key}]`, val),
+    template
+  );
+};
+
+// Helper function for shuffling an array
+const shuffle = (array) => {
+  let currentIndex = array.length, randomIndex;
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+  }
+  return array;
+};
 
 const SlideShow = ({ setView, timeRange }) => {
   const [slides, setSlides] = useState([]);
@@ -27,6 +51,7 @@ const SlideShow = ({ setView, timeRange }) => {
   const [notEnoughData, setNotEnoughData] = useState(false);
   const videoRef = useRef(null);
 
+  // Background videos to be shuffled for each slideshow
   const backgroundVideos = [
     '/assets/videos/1.mp4', '/assets/videos/2.mp4', '/assets/videos/3.mp4',
     '/assets/videos/4.mp4', '/assets/videos/5.mp4', '/assets/videos/6.mp4',
@@ -34,29 +59,8 @@ const SlideShow = ({ setView, timeRange }) => {
     '/assets/videos/10.mp4'
   ];
 
-  const timeRangeMap = { day: "today", week: "this week", month: "this month" };
-
-  const pickPrompt = (section, replacements = {}) => {
-    const options = promptsData.prompts[section] || [];
-    if (!options.length) return '';
-    const template = options[Math.floor(Math.random() * options.length)].text;
-    return Object.entries(replacements).reduce(
-      (result, [key, val]) => result.replaceAll(`[${key}]`, val),
-      template
-    );
-  };
-
-  const shuffle = (array) => {
-    let currentIndex = array.length, randomIndex;
-    while (currentIndex !== 0) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-    return array;
-  };
-
-  useEffect(() => { 
+  // Fetch and display slideshow data based on the selected time range
+  useEffect(() => {
     const loadSlides = async () => {
       setLoading(true);
       const daysMap = { day: 1, week: 7, month: 30 };
@@ -69,6 +73,7 @@ const SlideShow = ({ setView, timeRange }) => {
       const slides = [];
       const videos = shuffle([...backgroundVideos]);
 
+      // Adding intro and total visits slides
       slides.push({
         id: 'intro',
         video: videos[0],
@@ -83,9 +88,9 @@ const SlideShow = ({ setView, timeRange }) => {
         metric: false,
       });
 
+      // Fetch unique websites visited and add corresponding slide
       const totalUnique = await safeCallBackground("getUniqueWebsites", { days });
 
-      // see if theres any data, if not skip slides
       if (!totalUnique || totalUnique === 0) {
         console.log("[SlideShow] Not enough data (totalUnique=0).");
         setNotEnoughData(true);
@@ -93,7 +98,7 @@ const SlideShow = ({ setView, timeRange }) => {
         setProgress(100);
         return;
       }
-      
+
       slides.push({
         id: 'totalWebsites',
         video: videos[2],
@@ -101,6 +106,7 @@ const SlideShow = ({ setView, timeRange }) => {
         metric: true,
       });
 
+      // Adding daily visit count chart if the time range is not 'day'
       if (timeRange !== 'day') {
         const dailyData = await safeCallBackground("getDailyVisitCounts", { days }) || [];
         if (dailyData.length) {
@@ -123,6 +129,7 @@ const SlideShow = ({ setView, timeRange }) => {
         }
       }
 
+      // Fetching top 3 visited websites and adding a slide for them
       const topSitesRaw = await safeCallBackground("getMostVisitedSites", { days, limit: 3 }) || [];
       const topDomains = topSitesRaw.map(s => {
         try { return new URL(s.url).hostname; } catch { return null; }
@@ -139,6 +146,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // Fetching visit times per hour and adding slides for peak hour and histogram
       const visitsPerHour = await safeCallBackground("getVisitsPerHour", { days }) || [];
       let peakHour = visitsPerHour.length ? visitsPerHour.reduce((a, b) => a.totalVisits > b.totalVisits ? a : b) : { hour: 0, totalVisits: 0 };
 
@@ -161,6 +169,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // Fetching the busiest day and adding corresponding slide
       const dailyCounts = await safeCallBackground("getDailyVisitCounts", { days }) || [];
       const busiestDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
       if (busiestDay) {
@@ -171,6 +180,7 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // Fetching category data and adding radar chart for top category
       const labelCounts = await safeCallBackground("getLabelCounts", { days }) || [];
       const topCategory = labelCounts[0];
       if (topCategory) {
@@ -187,49 +197,47 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+      // Adding recap outro slide
       slides.push({
         id: 'recapOutro',
         video: videos[7],
         prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] })
       });
+
       setSlides(slides);
       setNotEnoughData(false);
       setLoading(false);
       setProgress(100);
     };
-  
+
     loadSlides();
   }, [timeRange]);
 
+  // Simulating loading progress
   useEffect(() => {
     if (!loading) return;
     const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev < 90) {
-          return prev + Math.random() * 5;
-        } else {
-          return prev;
-        }
-      });
+      setProgress(prev => (prev < 90 ? prev + Math.random() * 5 : prev));
     }, 200);
     return () => clearInterval(interval);
   }, [loading]);
 
+  // Handling video load
   useEffect(() => {
     if (videoRef.current) videoRef.current.load();
   }, [index]);
 
+  // Automatically transition to the next slide after 5 seconds
   useEffect(() => {
     if (loading || notEnoughData) return;
-  
     const timer = setTimeout(() => {
       setIndex(prev => (prev < slides.length - 1 ? prev + 1 : prev));
     }, 5000);
-  
+
     return () => clearTimeout(timer);
   }, [index, slides.length, loading, notEnoughData]);
 
-  //  LOADING SCREEN
+  // Loading screen
   if (loading || progress < 100) {
     return (
       <div className="loading-screen">
@@ -242,17 +250,17 @@ const SlideShow = ({ setView, timeRange }) => {
       </div>
     );
   }
-  
+
+  // "Not enough data" screen
   if (notEnoughData) {
     return (
       <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', padding: '2rem', boxSizing: 'border-box' }}>
         <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>Not enough browsing history yet. Your recap will be ready once you’ve explored a bit more!</h1>
-    </div>
+      </div>
     );
   }
-  
 
-  // 🚀 SLIDESHOW UI after loading
+  // Main slideshow UI
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
       <video ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
@@ -268,7 +276,18 @@ const SlideShow = ({ setView, timeRange }) => {
             </div>
           </>
         ) : (
-          <h1 style={{ color: '#fff', textAlign: 'center', marginTop: '35vh' }}>{slides[index]?.prompt}</h1>
+          <h1 style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            color: '#fff',
+            maxWidth: '90%',
+            textAlign: 'center',
+            margin: 0,
+            padding: '0 2rem',
+            boxSizing: 'border-box',
+          }}>{slides[index]?.prompt}</h1>
         )}
       </div>
 

@@ -10,7 +10,7 @@
     "dev": "webpack --mode development",
     "build": "webpack --mode production",
     "test": "jest --env=jsdom",
-    "build:ext": "npm run build && web-ext build --source-dir ./dist/"
+    "build:ext": "npm run build && web-ext build --overwrite-dest --source-dir ./dist/"
   },
   "repository": {
     "type": "git",

@@ -265,12 +265,27 @@ const SlideShow = ({ setView, timeRange }) => {
           });
         }        
       }
-    
+
+      //SUMMARY
+      let summaryLines = [];
+      summaryLines.push(`✨ Recap Summary ✨`);
+      summaryLines.push(`🌐 Unique websites: ${totalUnique.toLocaleString()}`);
+      if (topCategory) summaryLines.push(`🏆 Favorite category: ${topCategory.categories[0]}`);
+      if (topDomains.length) summaryLines.push(`🔥 Top site: ${topDomains[0]}`);
+      summaryLines.push(`⏰ Peak hour: ${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`);
+      
       slides.push({
-        id: 'recapOutro',
-        video: videos[7],
-        prompt: pickPrompt("recapOutro", { x: timeRangeMap[timeRange] })
+        id: 'recapSummary',
+        video: videos[6],
+        prompt: (
+          <div style={{ color: '#fff', textAlign: 'center' }}>
+            {summaryLines.map((line, idx) => (
+              <div key={idx} style={{ marginBottom: '0.5rem' }}>{line}</div>
+            ))}
+          </div>
+        )
       });
+      
 
       setSlides(slides);
       setNotEnoughData(false);

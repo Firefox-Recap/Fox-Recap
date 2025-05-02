@@ -59,23 +59,24 @@
     "totalWebsites": [
       {
         "id": "totalSites1",
-        "text": "You've visited [x] unique websites today—explorer of the digital universe! 🌌🚀"
+        "text": "You've visited [x] unique websites [d]—explorer of the digital universe! 🌌🚀"
       },
       {
+        
         "id": "totalSites2",
-        "text": "You clicked [x] URLs this [d,w,m]—curious, unstoppable, and maybe just a little too online. 🌐👀"
+        "text": "You clicked [x] URLs this [d]—curious, unstoppable, and maybe just a little too online. 🌐👀"
       },
       {
         "id": "totalSites3",
-        "text": "You navigated through [X] unique websites this [x]—a true net navigator! 🧭🌐"
+        "text": "You navigated through [x] unique websites this [d]—a true net navigator! 🧭🌐"
       },
       {
         "id": "totalSites4",
-        "text": "You launched [X] website visits this [x]—digital explorer status: Expert! 🚀🌟"
+        "text": "You launched [x] website visits this [d]—digital explorer status: Expert! 🚀🌟"
       },
       {
         "id": "totalSites5",
-        "text": "Your browser saw [X] sites this [x]—you're surfing the web waves! 🏄‍♀️🌊"
+        "text": "Your browser saw [x] sites this [d]—you're surfing the web waves! 🏄‍♀️🌊"
       }
     ],
     "top3Websites": [
@@ -224,7 +225,61 @@
         "id": "recapOutro4",
         "text": "That was your recap [x]—keep exploring, and we’ll be watching 👀🌐"
       }
-    ]
+    ],
+    "trendingCategory": [
+      {
+        "id": "trend1",
+        "text": "[Category] spiked on [Date] — trending in your personal internet bubble. 📈🌍"
+      },
+      {
+        "id": "trend2",
+        "text": "Your clicks shifted to [Category] on [Date] — a change of pace? 🔁📚"
+      },
+      {
+        "id": "trend3",
+        "text": "[Date] was all about [Category] — what sparked the streak? 💡💥"
+      },
+      {
+        "id": "trend4",
+        "text": "A noticeable surge in [Category] on [Date] — looks like something caught your interest. 📊👀"
+      }
+    ],
+    "recencyFrequency": [
+      {
+        "id": "rf1",
+        "text": "You've been all over [Domain] — [Count] visits, and last seen just [DaysSince] days ago! 🔥🌐"
+      },
+      {
+        "id": "rf2",
+        "text": "[Domain] has your attention: [Count] visits, with your most recent stop just [DaysSince] days back. 👀🕒"
+      },
+      {
+        "id": "rf3",
+        "text": "Frequent flyer alert! [Domain] saw [Count] visits, last checked in [DaysSince] days ago. ✈️💻"
+      },
+      {
+        "id": "rf4",
+        "text": "You can’t stay away from [Domain]: [Count] visits, most recently [DaysSince] days ago. 🚀📶"
+      }
+    ],
+    "mostCommonJump": [
+      {
+        "id": "jump1",
+        "text": "You most often jumped from [From] to [To] — a digital two-step. 🩰🔁"
+      },
+      {
+        "id": "jump2",
+        "text": "[From] → [To] was your go-to combo. Muscle memory? 📎➡️📎"
+      },
+      {
+        "id": "jump3",
+        "text": "A familiar path: [From] to [To] — one click to the next. 🧭🔗"
+      },
+      {
+        "id": "jump4",
+        "text": "[From] to [To] formed your most traveled route. What’s the story? 📘🛣️"
+      }
+     ]
     }
   }
   

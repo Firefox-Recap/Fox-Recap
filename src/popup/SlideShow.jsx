@@ -65,91 +65,95 @@ const SlideShow = ({ setView, timeRange }) => {
       setLoading(true);
       const daysMap = { day: 1, week: 7, month: 30 };
       const days = daysMap[timeRange] || 1;
-
+    
       console.log("[SlideShow] Fetching and storing history...");
       await safeCallBackground("fetchAndStoreHistory", { days });
       console.log("[SlideShow] History fetch complete, loading slides...");
-
+    
       const slides = [];
       const videos = shuffle([...backgroundVideos]);
-
-      // Adding intro and total visits slides
+    
       slides.push({
         id: 'intro',
         video: videos[0],
-        prompt: pickPrompt("introRecap", { x: timeRangeMap[timeRange] }),
-        metric: false,
+        prompt: pickPrompt("introRecap", { x: timeRangeMap[timeRange] })
       });
-
+    
       slides.push({
         id: 'totalVisits',
         video: videos[1],
-        prompt: pickPrompt("introToTotalWebsites", { x: timeRangeMap[timeRange] }),
-        metric: false,
+        prompt: pickPrompt("introToTotalWebsites", { x: timeRangeMap[timeRange] })
       });
-
-      // Fetch unique websites visited and add corresponding slide
+    
+      // Unique websites
       const totalUnique = await safeCallBackground("getUniqueWebsites", { days });
-
       if (!totalUnique || totalUnique === 0) {
-        console.log("[SlideShow] Not enough data (totalUnique=0).");
         setNotEnoughData(true);
         setLoading(false);
         setProgress(100);
         return;
       }
-
       slides.push({
         id: 'totalWebsites',
         video: videos[2],
-        prompt: `You visited ${typeof totalUnique === 'number' ? totalUnique.toLocaleString() : '0'} unique websites ${timeRangeMap[timeRange]}.`,
-        metric: true,
+        prompt: pickPrompt("totalWebsites", {
+          x: totalUnique.toLocaleString(),
+          d: timeRangeMap[timeRange]
+        })
       });
-
-      // Adding daily visit count chart if the time range is not 'day'
-      if (timeRange !== 'day') {
-        const dailyData = await safeCallBackground("getDailyVisitCounts", { days }) || [];
-        if (dailyData.length) {
-          slides.push({
-            id: 'dailyVisitsChart',
-            video: null,
-            prompt: 'Your daily visit counts over time 📅',
-            chart: (
-              <LineContainer width="100%" height={300}>
-                <LineChart data={dailyData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="count" stroke="#82ca9d" />
-                </LineChart>
-              </LineContainer>
-            )
-          });
-        }
-      }
-
-      // Fetching top 3 visited websites and adding a slide for them
-      const topSitesRaw = await safeCallBackground("getMostVisitedSites", { days, limit: 3 }) || [];
-      const topDomains = topSitesRaw.map(s => {
+    
+      // Top 3 visited websites, deduplicated
+      const topSitesRaw = await safeCallBackground("getMostVisitedSites", { days, limit: 10 }) || [];
+      const topDomains = [...new Set(topSitesRaw.map(s => {
         try { return new URL(s.url).hostname; } catch { return null; }
-      }).filter(Boolean).slice(0, 3);
-
+      }).filter(Boolean))].slice(0, 3);
+    
       if (topDomains.length) {
-        const template = (promptsData.prompts.top3Websites || [{ text: "Your top sites: [TopSites]" }])[0].text;
-        const list = topDomains.join(', ');
         slides.push({
           id: 'topSites',
           video: videos[3],
-          prompt: template.replace('[TopSites]', list),
-          metric: false,
+          prompt: pickPrompt("top3Websites", { TopSites: topDomains.join(', ') })
         });
       }
-
-      // Fetching visit times per hour and adding slides for peak hour and histogram
+    
+      // Recency-Frequency
+      const rfStats = await safeCallBackground("getRecencyFrequency", { days, limit: 1 }) || [];
+      if (rfStats.length) {
+        const topDomain = rfStats[0];
+        slides.push({
+          id: 'recencyFrequency',
+          video: videos[0],
+          prompt: pickPrompt("recencyFrequency", {
+            Domain: topDomain.domain,
+            Count: topDomain.count,
+            DaysSince: topDomain.daysSince.toFixed(1)
+          })
+        });
+      }
+    
+      // Most common jump
+      const transitions = await safeCallBackground("getTransitionPatterns", { days }) || {};
+      if (transitions.summary?.topPattern) {
+        const { from, to, count } = transitions.summary.topPattern;
+        let fromDomain, toDomain;
+        try { fromDomain = new URL(from).hostname; } catch { fromDomain = from; }
+        try { toDomain = new URL(to).hostname; } catch { toDomain = to; }
+    
+        slides.push({
+          id: 'topTransition',
+          video: videos[1],
+          prompt: pickPrompt("mostCommonJump", {
+            From: fromDomain,
+            To: toDomain,
+            Count: count
+          })
+        });
+      }
+    
+      // Peak hour
       const visitsPerHour = await safeCallBackground("getVisitsPerHour", { days }) || [];
       let peakHour = visitsPerHour.length ? visitsPerHour.reduce((a, b) => a.totalVisits > b.totalVisits ? a : b) : { hour: 0, totalVisits: 0 };
-
+    
       slides.push({
         id: 'visitsPerHour',
         video: videos[4],
@@ -157,9 +161,9 @@ const SlideShow = ({ setView, timeRange }) => {
           Start: `${(peakHour.hour % 12) || 12}${peakHour.hour < 12 ? 'am' : 'pm'}`,
           End: `${((peakHour.hour + 1) % 12) || 12}${(peakHour.hour + 1) < 12 ? 'am' : 'pm'}`,
           Count: peakHour.totalVisits
-        }),
+        })
       });
-
+    
       if (visitsPerHour.length) {
         slides.push({
           id: 'visitsPerHourChart',
@@ -168,8 +172,8 @@ const SlideShow = ({ setView, timeRange }) => {
           chart: <TimeOfDayHistogram data={visitsPerHour} />
         });
       }
-
-      // Fetching the busiest day and adding corresponding slide
+    
+      // Busiest day
       const dailyCounts = await safeCallBackground("getDailyVisitCounts", { days }) || [];
       const busiestDay = dailyCounts.sort((a, b) => b.count - a.count)[0];
       if (busiestDay) {
@@ -179,15 +183,18 @@ const SlideShow = ({ setView, timeRange }) => {
           prompt: pickPrompt("busiestDay", { Date: busiestDay.date, Count: busiestDay.count })
         });
       }
-
-      // Fetching category data and adding radar chart for top category
+    
+      // Top category
       const labelCounts = await safeCallBackground("getLabelCounts", { days }) || [];
       const topCategory = labelCounts[0];
-      if (topCategory) {
+      if (topCategory && topCategory.categories?.length) {
         slides.push({
           id: 'topCategory',
           video: videos[6],
-          prompt: pickPrompt("topCategory", { Category: topCategory.categories[0], Count: topCategory.count })
+          prompt: pickPrompt("topCategory", {
+            Category: topCategory.categories[0],
+            Count: topCategory.count
+          })
         });
         slides.push({
           id: 'topCategoryRadar',
@@ -196,25 +203,40 @@ const SlideShow = ({ setView, timeRange }) => {
           chart: <RadarCategoryChart data={labelCounts.map(c => ({ category: c.categories[0], count: c.count }))} />
         });
       }
-
-     // Fetching co-occurrence counts and adding a text summary slide
-      const coCounts = await safeCallBackground("getCOCounts", { days }) || [];
-      const topCoPairs = coCounts
-        .filter(([, , count]) => count > 0)
-        .sort((a, b) => b[2] - a[2])
-        .slice(0, 3);  // Top 5 pairs
-
-      if (topCoPairs.length) {
-        const [catA, catB, count] = topCoPairs[0]; 
-      
+    
+      // Category trends
+      const trends = await safeCallBackground("getCategoryTrends", { days }) || [];
+      if (trends.length) {
+        const topDay = trends.reduce((max, day) =>
+          day.categories[0].count > (max.categories[0]?.count || 0) ? day : max
+        );
         slides.push({
-          id: 'topCoOccurrenceText',
-          video: videos[8],
-          prompt: `Your strongest category pair 🔗 ${catA} and ${catB} showed up together ${count} times in your browsing — your most frequent pairing!`
+          id: 'categoryTrends',
+          video: videos[9],
+          prompt: pickPrompt("trendingCategory", {
+            Category: topDay.categories[0].label,
+            Date: topDay.date,
+            Count: topDay.categories[0].count
+          })
         });
       }
-
-      // Adding recap outro slide
+    
+      // Co-occurrence
+      const coCounts = await safeCallBackground("getCOCounts", { days }) || [];
+      const topCoPairs = coCounts.filter(([, , count]) => count > 0).sort((a, b) => b[2] - a[2]);
+      if (topCoPairs.length) {
+        const [catA, catB, count] = topCoPairs[0];
+        if (topCoPairs.length) {
+          const [catA, catB, count] = topCoPairs[0];  // Only the top pair
+        
+          slides.push({
+            id: 'topCoOccurrenceText',
+            video: videos[8],
+            prompt: `Your strongest category pair 🔗 ${catA} and ${catB} showed up together ${count} times in your browsing — your most frequent pairing!`
+          });
+        }        
+      }
+    
       slides.push({
         id: 'recapOutro',
         video: videos[7],

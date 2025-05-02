@@ -197,6 +197,23 @@ const SlideShow = ({ setView, timeRange }) => {
         });
       }
 
+     // Fetching co-occurrence counts and adding a text summary slide
+      const coCounts = await safeCallBackground("getCOCounts", { days }) || [];
+      const topCoPairs = coCounts
+        .filter(([, , count]) => count > 0)
+        .sort((a, b) => b[2] - a[2])
+        .slice(0, 3);  // Top 5 pairs
+
+      if (topCoPairs.length) {
+        const [catA, catB, count] = topCoPairs[0]; 
+      
+        slides.push({
+          id: 'topCoOccurrenceText',
+          video: videos[8],
+          prompt: `Your strongest category pair 🔗 ${catA} and ${catB} showed up together ${count} times in your browsing — your most frequent pairing!`
+        });
+      }
+
       // Adding recap outro slide
       slides.push({
         id: 'recapOutro',

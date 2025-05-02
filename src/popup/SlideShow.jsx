@@ -130,21 +130,28 @@ const SlideShow = ({ setView, timeRange }) => {
       }
 
       // Fetching top 3 visited websites and adding a slide for them
-      const topSitesRaw = await safeCallBackground("getMostVisitedSites", { days, limit: 3 }) || [];
-      const topDomains = topSitesRaw.map(s => {
-        try { return new URL(s.url).hostname; } catch { return null; }
-      }).filter(Boolean).slice(0, 3);
+      const topSitesRaw = await safeCallBackground("getMostVisitedSites", { days, limit: 50 }) || [];
 
+      const domainCounts = {};
+      for (const site of topSitesRaw) {
+        let domain;
+        try { domain = new URL(site.url).hostname; } catch { continue; }
+        domainCounts[domain] = (domainCounts[domain] || 0) + site.count;
+      }
+      
+      const topDomains = Object.entries(domainCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([domain]) => domain);
+      
       if (topDomains.length) {
-        const template = (promptsData.prompts.top3Websites || [{ text: "Your top sites: [TopSites]" }])[0].text;
-        const list = topDomains.join(', ');
         slides.push({
           id: 'topSites',
           video: videos[3],
-          prompt: template.replace('[TopSites]', list),
-          metric: false,
+          prompt: pickPrompt("top3Websites", { TopSites: topDomains.join(', ') })
         });
       }
+      
 
       // Fetching visit times per hour and adding slides for peak hour and histogram
       const visitsPerHour = await safeCallBackground("getVisitsPerHour", { days }) || [];
@@ -182,20 +189,31 @@ const SlideShow = ({ setView, timeRange }) => {
 
       // Fetching category data and adding radar chart for top category
       const labelCounts = await safeCallBackground("getLabelCounts", { days }) || [];
-      const topCategory = labelCounts[0];
+      const topCategory = labelCounts.find(c => c.categories?.length && c.count > 0);
+      
       if (topCategory) {
         slides.push({
           id: 'topCategory',
           video: videos[6],
-          prompt: pickPrompt("topCategory", { Category: topCategory.categories[0], Count: topCategory.count })
+          prompt: pickPrompt("topCategory", {
+            Category: topCategory.categories[0],
+            Count: topCategory.count
+          })
         });
+      
         slides.push({
           id: 'topCategoryRadar',
           video: null,
           prompt: "Here's how your categories stack up 📊",
-          chart: <RadarCategoryChart data={labelCounts.map(c => ({ category: c.categories[0], count: c.count }))} />
+          chart: <RadarCategoryChart data={labelCounts.map(c => ({
+            category: c.categories[0],
+            count: c.count
+          }))} />
         });
-      }
+      } else {
+        console.warn("[SlideShow] No top category with nonzero count found.");
+      }      
+      
 
      // Fetching co-occurrence counts and adding a text summary slide
       const coCounts = await safeCallBackground("getCOCounts", { days }) || [];

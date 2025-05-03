@@ -72,7 +72,6 @@ const SlideShow = ({ setView, timeRange }) => {
     
       const slides = [];
       const videos = shuffle([...backgroundVideos]);
-    
       slides.push({
         id: 'intro',
         video: videos[0],
@@ -93,6 +92,7 @@ const SlideShow = ({ setView, timeRange }) => {
         setProgress(100);
         return;
       }
+    
       slides.push({
         id: 'totalWebsites',
         video: videos[2],
@@ -101,6 +101,7 @@ const SlideShow = ({ setView, timeRange }) => {
           d: timeRangeMap[timeRange]
         })
       });
+    
       // Adding daily visit count chart if the time range is not 'day'
       if (timeRange !== 'day') {
         const dailyData = await safeCallBackground("getDailyVisitCounts", { days }) || [];
@@ -174,7 +175,9 @@ const SlideShow = ({ setView, timeRange }) => {
     
       // Peak hour
       const visitsPerHour = await safeCallBackground("getVisitsPerHour", { days }) || [];
-      let peakHour = visitsPerHour.length ? visitsPerHour.reduce((a, b) => a.totalVisits > b.totalVisits ? a : b) : { hour: 0, totalVisits: 0 };
+      let peakHour = visitsPerHour.length
+        ? visitsPerHour.reduce((a, b) => a.totalVisits > b.totalVisits ? a : b)
+        : { hour: 0, totalVisits: 0 };
     
       slides.push({
         id: 'visitsPerHour',
@@ -231,7 +234,6 @@ const SlideShow = ({ setView, timeRange }) => {
       } else {
         console.warn("[SlideShow] No top category with nonzero count found.");
       }
-      
     
       // Category trends
       const trends = await safeCallBackground("getCategoryTrends", { days }) || [];
@@ -255,18 +257,14 @@ const SlideShow = ({ setView, timeRange }) => {
       const topCoPairs = coCounts.filter(([, , count]) => count > 0).sort((a, b) => b[2] - a[2]);
       if (topCoPairs.length) {
         const [catA, catB, count] = topCoPairs[0];
-        if (topCoPairs.length) {
-          const [catA, catB, count] = topCoPairs[0];  // Only the top pair
-        
-          slides.push({
-            id: 'topCoOccurrenceText',
-            video: videos[8],
-            prompt: `Your strongest category pair 🔗 ${catA} and ${catB} showed up together ${count} times in your browsing — your most frequent pairing!`
-          });
-        }        
+        slides.push({
+          id: 'topCoOccurrenceText',
+          video: videos[8],
+          prompt: `Your strongest category pair 🔗 ${catA} and ${catB} showed up together ${count} times in your browsing — your most frequent pairing!`
+        });
       }
-
-      //SUMMARY
+    
+      // SUMMARY
       let summaryLines = [];
       summaryLines.push(`✨ Recap Summary ✨`);
       summaryLines.push(`🌐 Unique websites: ${totalUnique.toLocaleString()}`);
@@ -285,7 +283,6 @@ const SlideShow = ({ setView, timeRange }) => {
           </div>
         )
       });
-      
 
       setSlides(slides);
       setNotEnoughData(false);
@@ -381,3 +378,4 @@ const SlideShow = ({ setView, timeRange }) => {
 };
 
 export default SlideShow;
+

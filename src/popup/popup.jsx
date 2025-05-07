@@ -9,6 +9,7 @@ const Popup = () => {
   const onSelectTimeRange = (range) => {
     const url = browser.runtime.getURL(`recap.html?range=${range}`);
     browser.tabs.create({ url });
+    window.close();
   };
 
   const handleOpenSettings = () => {

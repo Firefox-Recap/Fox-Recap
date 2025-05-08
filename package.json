@@ -1,6 +1,6 @@
 {
   "name": "firefox-recap",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "**Firefox Recap** is a powerful browser extension designed to help users analyze and understand their browsing habits. It categorizes your browsing history using **AI-powered topic classification** and a **frequency + recency algorithm**, providing **insightful reports** on how you spend time online.",
   "main": "webpack.config.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "dev": "webpack --mode development",
     "build": "webpack --mode production",
     "test": "jest --env=jsdom",
-    "build:ext": "npm run build && web-ext build --overwrite-dest --source-dir ./dist/"
+    "build:ext": "npm run build && web-ext build --overwrite-dest --source-dir ./dist/ && mv web-ext-artifacts/*.zip web-ext-artifacts/firefox-recap.xpi"
   },
   "repository": {
     "type": "git",

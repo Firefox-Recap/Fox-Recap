@@ -10,7 +10,7 @@
     "dev": "webpack --mode development",
     "build": "webpack --mode production",
     "test": "jest --env=jsdom",
-    "build:ext": "npm run build && web-ext build --overwrite-dest --source-dir ./dist/ && mv web-ext-artifacts/*.zip web-ext-artifacts/firefox-recap.xpi"
+    "build:ext": "npm run build && web-ext build --overwrite-dest --source-dir ./dist/"
   },
   "repository": {
     "type": "git",

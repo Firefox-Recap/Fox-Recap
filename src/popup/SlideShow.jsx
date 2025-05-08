@@ -212,7 +212,11 @@ const SlideShow = ({ setView, timeRange }) => {
     
       // Top category
       const labelCounts = await safeCallBackground("getLabelCounts", { days }) || [];
-      const topCategory = labelCounts.find(c => c.categories?.length && c.count > 0);
+      const nonZero = labelCounts.filter(c => c.count > 0);
+      const topCategory = nonZero.length
+        ? nonZero.reduce((max, c) => c.count > max.count ? c : max)
+        : null;
+
       if (topCategory) {
         slides.push({
           id: 'topCategory',

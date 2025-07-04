@@ -216,7 +216,6 @@ const SlideShow = ({ setView, timeRange }) => {
       const topCategory = nonZero.length
         ? nonZero.reduce((max, c) => c.count > max.count ? c : max)
         : null;
-
       if (topCategory) {
         slides.push({
           id: 'topCategory',

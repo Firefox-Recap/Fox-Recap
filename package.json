@@ -1,6 +1,6 @@
 {
   "name": "firefox-recap",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "description": "**Firefox Recap** is a powerful browser extension designed to help users analyze and understand their browsing habits. It categorizes your browsing history using **AI-powered topic classification** and a **frequency + recency algorithm**, providing **insightful reports** on how you spend time online.",
   "main": "webpack.config.js",
   "scripts": {

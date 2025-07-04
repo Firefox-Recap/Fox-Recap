@@ -1,7 +1,7 @@
 {
-  "name": "firefox-recap",
+  "name": "fox-recap",
   "version": "1.0.0",
-  "description": "**Firefox Recap** is a powerful browser extension designed to help users analyze and understand their browsing habits. It categorizes your browsing history using **AI-powered topic classification** and a **frequency + recency algorithm**, providing **insightful reports** on how you spend time online.",
+  "description": "**Fox Recap** is a powerful browser extension designed to help users analyze and understand their browsing habits. It categorizes your browsing history using **AI-powered topic classification** and a **frequency + recency algorithm**, providing **insightful reports** on how you spend time online.",
   "main": "webpack.config.js",
   "scripts": {
     "docs": "jsdoc -c jsdoc.json",
@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Firefox-Recap/Firefox-Recap/issues"
+    "url": "https://github.com/Firefox-Recap/Fox-Recap/issues"
   },
   "homepage": "https://github.com/Firefox-Recap/Firefox-Recap#readme",
   "devDependencies": {

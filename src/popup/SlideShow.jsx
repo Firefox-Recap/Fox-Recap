@@ -5,6 +5,7 @@ import promptsData from "./prompts.json";
 import RadarCategoryChart from './RadarCategoryChart';
 import TimeOfDayHistogram from './TimeOfDayHistogram';
 import WavyText from './WavyText';
+import ProgressBar from './ProgressBar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer as LineContainer } from 'recharts';
 
 // Utility function for making safe background calls
@@ -211,7 +212,10 @@ const SlideShow = ({ setView, timeRange }) => {
     
       // Top category
       const labelCounts = await safeCallBackground("getLabelCounts", { days }) || [];
-      const topCategory = labelCounts.find(c => c.categories?.length && c.count > 0);
+      const nonZero = labelCounts.filter(c => c.count > 0);
+      const topCategory = nonZero.length
+        ? nonZero.reduce((max, c) => c.count > max.count ? c : max)
+        : null;
       if (topCategory) {
         slides.push({
           id: 'topCategory',
@@ -343,6 +347,11 @@ const SlideShow = ({ setView, timeRange }) => {
   // Main slideshow UI
   return (
     <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+      <ProgressBar
+        currentIndex={index}
+        slideCount={slides.length}
+        durationMs={5000}
+      />
       <video ref={videoRef} autoPlay loop muted style={{ width: '100%', height: '100%', objectFit: 'cover' }}>
         {slides[index]?.video && <source src={slides[index].video} type="video/mp4" />}
       </video>

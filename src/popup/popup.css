@@ -196,3 +196,42 @@ button:disabled {
   background-color: #00C853;
   transition: width 0.5s ease-in-out;
 }
+
+.story-progress {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 20;
+}
+
+.story-progress__segment {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.story-progress__fill {
+  width: 0%;
+  height: 100%;
+  background: white;
+  animation-fill-mode: forwards;
+  animation-timing-function: linear;
+}
+
+.story-progress__fill.active {
+  animation-name: fill;
+}
+
+.story-progress__fill.completed {
+  width: 100%;
+}
+
+@keyframes fill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}

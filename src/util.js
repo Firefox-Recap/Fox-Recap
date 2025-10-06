@@ -1,9 +1,9 @@
 /**
- * @fileoverview Utility functions for Firefox-Recap, including environment-based
+ * @fileoverview Utility functions for Fox Recap, including environment-based
  * concurrency determination.
  */
 
-import { CONCURRENCY_ENABLED } from "./config"
+import {CONCURRENCY_ENABLED} from './config';
 
 /**
  * Determine the maximum number of concurrent tasks allowed.
@@ -15,8 +15,8 @@ import { CONCURRENCY_ENABLED } from "./config"
  * @returns {number} The concurrency limit (number of parallel tasks).
  */
 export function getConcurrencyLimit() {
-    if (CONCURRENCY_ENABLED) {
-        return navigator.hardwareConcurrency || 1; // Fallback to 1 if not available
-    }
-    return 1; // Disable concurrency
+  if (CONCURRENCY_ENABLED) {
+    return navigator.hardwareConcurrency || 1; // Fallback to 1 if not available
+  }
+  return 1; // Disable concurrency
 }

@@ -2,12 +2,12 @@
  * @file background.js
  * @module background/background
  * @description
- * Entry point for the background script.  
- * - Initializes the IndexedDB via {@link module:background/initdb.initDB|initDB()}  
+ * Entry point for the background script.
+ * - Initializes the IndexedDB via {@link module:background/initdb.initDB|initDB()}
  * - Exposes all handler functions on the global `window` for easy manual invocation & debugging.
  */
 
-import { initDB } from './initdb.js';
+import {initDB} from './initdb.js';
 import handlers from './handlers/index.js'; // Keep the default import for window assignment
 
 // Destructure the specific handlers needed for the message listener
@@ -16,15 +16,14 @@ const {
   getMostVisitedSites,
   getVisitsPerHour,
   getLabelCounts,
-  //getTimeSpentPerSite, 
+  //getTimeSpentPerSite,
   getCategoryTrends,
   getCOCounts,
   getDailyVisitCounts,
   getRecencyFrequency,
   getTransitionPatterns,
-  getUniqueWebsites
+  getUniqueWebsites,
 } = handlers;
-
 
 /**
  * Initialize the extension’s database on startup.
@@ -45,27 +44,65 @@ const {
   }
 })();
 
+/**
+ * Handle extension installation/update events.
+ * Automatically requests trialML permission on first install.
+ *
+ * @listens browser.runtime#onInstalled
+ * @param {object} details - Installation details
+ * @param {string} details.reason - Reason for this event ("install", "update", "browser_update")
+ */
+browser.runtime.onInstalled.addListener(async (details) => {
+  console.log('[Background] Extension installed/updated:', details.reason);
+
+  if (details.reason === 'install') {
+    console.log(
+      '[Background] First install detected - requesting trialML permission',
+    );
+
+    try {
+      // Check if we already have the permission
+      const hasPermission = await browser.permissions.contains({
+        permissions: ['trialML'],
+      });
+
+      if (!hasPermission) {
+        // Open the settings page to prompt for permission
+        browser.runtime.openOptionsPage();
+        console.log('[Background] Opened settings page for permission request');
+      } else {
+        console.log('[Background] trialML permission already granted');
+      }
+    } catch (err) {
+      console.error(
+        '[Background] Error checking/requesting trialML permission:',
+        err,
+      );
+    }
+  }
+});
+
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("[Background] Got message:", message.action);
+  console.log('[Background] Got message:', message.action);
 
-  const { action, days, limit } = message;
+  const {action, days, limit} = message;
 
-  if (action === "fetchAndStoreHistory") {
+  if (action === 'fetchAndStoreHistory') {
     fetchAndStoreHistory(days).then(sendResponse);
     return true;
   }
 
-  if (action === "getMostVisitedSites") {
+  if (action === 'getMostVisitedSites') {
     getMostVisitedSites(days, limit).then(sendResponse);
     return true;
   }
 
-  if (action === "getVisitsPerHour") {
+  if (action === 'getVisitsPerHour') {
     getVisitsPerHour(days).then(sendResponse);
     return true;
   }
 
-  if (action === "getLabelCounts") {
+  if (action === 'getLabelCounts') {
     getLabelCounts(days).then(sendResponse);
     return true;
   }
@@ -76,37 +113,37 @@ browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   //   return true;
   // }
 
-  if (action === "getCategoryTrends") {
+  if (action === 'getCategoryTrends') {
     getCategoryTrends(days).then(sendResponse);
     return true;
   }
 
-  if (action === "getCOCounts") {
+  if (action === 'getCOCounts') {
     getCOCounts(days).then(sendResponse);
     return true;
   }
 
-  if (action === "getDailyVisitCounts") {
+  if (action === 'getDailyVisitCounts') {
     getDailyVisitCounts(days).then(sendResponse);
     return true;
   }
 
-  if (action === "getRecencyFrequency") {
+  if (action === 'getRecencyFrequency') {
     getRecencyFrequency(days, limit).then(sendResponse);
     return true;
   }
 
-  if (action === "getTransitionPatterns") {
+  if (action === 'getTransitionPatterns') {
     getTransitionPatterns(days).then(sendResponse);
     return true;
   }
 
-  if (action === "getUniqueWebsites") {
+  if (action === 'getUniqueWebsites') {
     getUniqueWebsites(days).then(sendResponse);
     return true;
   }
 
-  console.warn("[Background] No handler for action:", action);
+  console.warn('[Background] No handler for action:', action);
   sendResponse(null);
   return true; // Keep true here for async sendResponse
 });

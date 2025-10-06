@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
-  "name": "Firefox Recap",
-  "version": "1.0.0",
+  "name": "Fox Recap",
+  "version": "1.1.0",
   "description": "Categorize and analyze browsing history for productivity insights.",
   "permissions": [
     "history",
@@ -11,13 +11,9 @@
     "downloads",
     "https://big.oisd.nl/*"
   ],
-  "optional_permissions": [
-    "trialML"
-  ],
+  "optional_permissions": ["trialML"],
   "background": {
-    "scripts": [
-      "background.js"
-    ],
+    "scripts": ["background.js"],
     "persistent": true
   },
   "browser_action": {
@@ -35,13 +31,10 @@
     "page": "settings.html",
     "open_in_tab": true
   },
-  "web_accessible_resources": [
-    "recap.html",
-    "assets/videos/*.mp4"
-  ],
+  "web_accessible_resources": ["recap.html", "assets/videos/*.mp4"],
   "browser_specific_settings": {
     "gecko": {
-      "id": "firefoxrecap@gmail.com"
+      "id": "foxrecap@gmail.com"
     }
   },
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'; connect-src https://big.oisd.nl blob:;"

@@ -10,14 +10,28 @@ const Settings = () => {
     try {
       const granted = await browser.permissions.contains({ permissions: ['trialML'] });
       setHasPermission(granted);
+      return granted;
     } catch (err) {
       setError('Could not check permission status.');
       setHasPermission(false);
+      return false;
     }
   };
 
   useEffect(() => {
-    checkPermission();
+    // Check permission and auto-request if not granted
+    (async () => {
+      const granted = await checkPermission();
+      
+      // If permission not granted on first load, automatically request it
+      if (!granted) {
+        console.log('[Settings] trialML permission not granted - auto-requesting');
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+          handleRequestPermission();
+        }, 500);
+      }
+    })();
   }, []);
 
   const handleRequestPermission = async () => {
@@ -55,7 +69,7 @@ const Settings = () => {
           <strong>Note:</strong><br />
           If ML features aren’t showing up, follow these steps:
           <ol style={{ textAlign: 'left', marginTop: '10px', marginLeft: '20px' }}>
-            <li>Open <code>about:config</code> in Firefox Nightly.</li>
+            <li>Open <code>about:config</code> in your browser.</li>
             <li>Search for <code>browser.ml.enable</code> and set it to <code>true</code>.</li>
             <li>Search for <code>extensions.ml.enabled</code> and set it to <code>true</code>.</li>
           </ol>

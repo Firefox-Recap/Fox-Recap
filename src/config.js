@@ -1,6 +1,6 @@
 /**
  * @fileoverview
- * Application-wide configuration constants used throughout Firefox Recap.
+ * Application-wide configuration constants used throughout Fox Recap.
  */
 
 /**
@@ -17,8 +17,8 @@ export const MS_PER_DAY = 24 * 60 * 60 * 1000;
  * @property {number} month - 30 days.
  */
 export const DAYS_MAP = {
-  day:   1,
-  week:  7,
+  day: 1,
+  week: 7,
   month: 30,
 };
 
@@ -65,7 +65,7 @@ export const ML_CACHE_SIMILARITY_THRESHOLD = 0.75;
 export const CONCURRENCY_ENABLED = true;
 
 /**
- * Configuration object passed to the ML engine at initialization. look at this link for more information: https://huggingface.co/firefoxrecap/URL-TITLE-classifier
+ * Configuration object passed to the ML engine at initialization. look at this link for more information: https://huggingface.co/foxrecap/URL-TITLE-classifier
  * @constant {Object}
  * @property {string} modelHub  - Name of the model hub (e.g., 'huggingface').
  * @property {string} taskName  - Task identifier for the model (e.g., 'text‑classification').
@@ -75,6 +75,6 @@ export const CONCURRENCY_ENABLED = true;
 export const MLENGINECONFIG = {
   modelHub: 'huggingface',
   taskName: 'text-classification',
-  modelId: 'firefoxrecap/URL-TITLE-classifier',
+  modelId: 'foxrecap/URL-TITLE-classifier',
   dtype: 'q8', // or 'fp32'
 };

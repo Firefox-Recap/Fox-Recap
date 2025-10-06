@@ -18,7 +18,7 @@ const HomeView = ({ onSelectTimeRange, loading, onOpenSettings}) => (
       Your browser does not support HTML5 video.
     </video>
     <div style={{ position: 'relative', zIndex: 1, marginTop:  "140px", marginLeft: "50px"}}>
-      <h1 style={{ fontSize: "80px", padding: "0", margin: "0" }}>Firefox Recap</h1>
+      <h1 style={{ fontSize: "80px", padding: "0", margin: "0" }}>Fox Recap</h1>
       <div className="btn-container">
         {['day', 'week', 'month'].map(r => (
           <button

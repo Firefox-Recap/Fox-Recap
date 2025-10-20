@@ -1,6 +1,6 @@
 {
   "name": "fox-recap",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "**Fox Recap** is a powerful browser extension designed to help users analyze and understand their browsing habits. It categorizes your browsing history using **AI-powered topic classification** and a **frequency + recency algorithm**, providing **insightful reports** on how you spend time online.",
   "main": "webpack.config.js",
   "scripts": {
@@ -12,17 +12,9 @@
     "test": "jest --env=jsdom",
     "build:ext": "npm run build && web-ext build --overwrite-dest --source-dir ./dist/"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Fox-Recap/Fox-Recap.git"
-  },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Fox-Recap/Fox-Recap/issues"
-  },
-  "homepage": "https://github.com/Fox-Recap/Fox-Recap#readme",
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@babel/preset-env": "^7.26.9",

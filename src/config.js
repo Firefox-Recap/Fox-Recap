@@ -75,6 +75,6 @@ export const CONCURRENCY_ENABLED = true;
 export const MLENGINECONFIG = {
   modelHub: 'huggingface',
   taskName: 'text-classification',
-  modelId: 'foxrecap/URL-TITLE-classifier',
+  modelId: 'firefoxrecap/URL-TITLE-classifier',
   dtype: 'q8', // or 'fp32'
 };
